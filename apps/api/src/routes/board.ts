@@ -43,18 +43,6 @@ boardRoutes.get('/board', async (c) => {
     }
     await db.insert(schema.userPreferences).values(newPrefs)
     prefs = newPrefs
-
-    // Seed default Labs habit so new users have an immediate focus tracker
-    await db.insert(schema.habits).values({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      name: 'Labs',
-      color: 'teal',
-      weeklyTarget: 7,
-      isLabs: true,
-      dailyMinutesTarget: 20,
-      createdAt: new Date(),
-    })
   }
 
   const [planRows, habitRows, checkinRows, labRows, goalRows, weekMetaRows] = await Promise.all([
@@ -81,6 +69,7 @@ boardRoutes.get('/board', async (c) => {
     name: r.name,
     color: r.color as HabitColor,
     weeklyTarget: r.weeklyTarget,
+    archived: r.archived || undefined,
     isLabs: r.isLabs || undefined,
     dailyMinutesTarget: r.dailyMinutesTarget ?? undefined,
   }))

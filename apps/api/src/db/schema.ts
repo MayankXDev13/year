@@ -94,6 +94,7 @@ export const habits = sqliteTable(
     name: text('name').notNull(),
     color: text('color').notNull(),
     weeklyTarget: integer('weekly_target').notNull(),
+    archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
     isLabs: integer('is_labs', { mode: 'boolean' }).notNull().default(false),
     dailyMinutesTarget: integer('daily_minutes_target'),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),

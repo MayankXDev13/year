@@ -25,8 +25,9 @@ export interface Habit {
   name: string
   color: HabitColor
   weeklyTarget: number // 1..7
+  archived?: boolean
   isLabs?: boolean
-  dailyMinutesTarget?: number // e.g., 20 for Labs
+  dailyMinutesTarget?: number // legacy
 }
 
 export interface QuarterGoal {

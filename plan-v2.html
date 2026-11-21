@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Year Board v2 — Polish, Archive Habits, Confetti &amp; Spotlight Tour Plan</title>
+  <style>
+    :root {
+      --bg-card: var(--card, #18181b);
+      --bg-secondary: var(--secondary, #27272a);
+      --bg-code: var(--code-background, #111113);
+      --fg: var(--foreground, #f4f4f5);
+      --fg-muted: var(--muted-foreground, #a1a1aa);
+      --bd: var(--border, rgba(255, 255, 255, 0.12));
+      --c-orange: #ea580c;
+      --c-blue: var(--info, #6b95f0);
+      --c-green: var(--success, #43b583);
+      --c-purple: #a183ee;
+      --c-amber: var(--warning, #d4a94f);
+      --c-red: var(--destructive, #ef4444);
+      --c-teal: #35b4c4;
+      --rad: var(--radius, 10px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+      color: var(--fg);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header p {
+      margin: 3px 0 0;
+      font-size: 12.5px;
+      color: var(--fg-muted);
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--bd);
+      background: var(--bg-secondary);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--bd);
+      border-radius: var(--rad);
+      padding: 16px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      font-family: var(--font-mono, monospace);
+    }
+
+    .badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--bd);
+      color: var(--fg-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .card h4 {
+      margin: 0 0 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card ul {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    .card li {
+      margin-bottom: 4px;
+    }
+
+    .card li strong {
+      color: var(--fg);
+    }
+
+    code {
+      font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+      font-size: 11px;
+      background: var(--bg-code);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--bd);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--bd);
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--fg-muted);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .phases {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .phase-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+    }
+
+    .phase-tag {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .phase-body h4 {
+      margin: 0 0 2px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .phase-body p {
+      margin: 0;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <h1>Year Board v2 — Feature &amp; UX Upgrade Plan</h1>
+        <p>Remove Labs · Habit Archive/Unarchive · Block Future Check-ins · Confetti · Spotlight Tour · Navbar &amp; Clean Login</p>
+      </div>
+      <div class="pills">
+        <span class="pill"><span class="dot" style="background: var(--c-red);"></span>No Default Labs</span>
+        <span class="pill"><span class="dot" style="background: var(--c-purple);"></span>Archive / Unarchive</span>
+        <span class="pill"><span class="dot" style="background: var(--c-green);"></span>Weekly Goal Confetti</span>
+        <span class="pill"><span class="dot" style="background: var(--c-blue);"></span>Spotlight Tutorial</span>
+      </div>
+    </div>
+
+    <!-- 1. Remove Labs & Simplify Settings -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">1</span> Remove Labs Habit &amp; Simplify Settings</h2>
+        <span class="badge">Cleanup</span>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-red);"></span>Remove Labs Everywhere</h4>
+          <ul>
+            <li>Remove default <strong>Labs</strong> habit seeding in <code>apps/api/src/routes/board.ts</code> and guest <code>sampleData.ts</code>.</li>
+            <li>Remove <strong>Labs daily target</strong> from Board Settings popover and Habit modal.</li>
+            <li>Remove <strong>Labs this week</strong> card from <code>WeekDrawer</code>.</li>
+            <li>Keep habits pure, flexible, and user-owned (e.g. Gym, Running, Reading, Meditate).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-amber);"></span>Clean Board Settings Popover</h4>
+          <ul>
+            <li>Remove <strong>Load sample year</strong> and <strong>Start blank year</strong> buttons from Board Settings.</li>
+            <li>Board Settings focuses purely on <strong>Density</strong> (<code>Comfortable</code> / <code>Compact</code>).</li>
+            <li>Cleaner, zero-clutter toolbar controls.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Habit Archive / Unarchive & Past-Only Rule -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">2</span> Habit Archive/Unarchive &amp; No Future Check-ins</h2>
+        <span class="badge">D1 + API + UI</span>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-purple);"></span>Archive &amp; Unarchive Habits</h4>
+          <ul>
+            <li>Add <code>archived</code> boolean column to D1 <code>habits</code> table via migration <code>0001_archive_habits.sql</code>.</li>
+            <li>Archive button in Habit edit modal / menu: moves completed or paused habits out of the active sidebar while <strong>preserving all historical check-ins &amp; streaks</strong>.</li>
+            <li>Collapsible <strong>Archived habits</strong> drawer/section in Sidebar with one-click <strong>Unarchive</strong> and Eye overlay to inspect past check-ins on the year board.</li>
+            <li>Archived habits do not block current/future <strong>Perfect Weeks</strong>.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-teal);"></span>Past &amp; Today Only Rule</h4>
+          <ul>
+            <li>Users can check/uncheck <strong>today</strong> and any <strong>past date</strong> (e.g. catching up on a missed Running log from yesterday).</li>
+            <li><strong>Future dates are strictly blocked</strong> (e.g. cannot tick Sunday's habit on Saturday).</li>
+            <li>Enforced in <strong>UI</strong> (future cells disabled with tooltip <em>"Can't log future days"</em>) AND in <strong>API</strong> (<code>POST /api/habits/:id/toggle</code> rejects <code>dateKey &gt; today</code> with HTTP <code>400</code>).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Confetti & Interactive Spotlight Tutorial -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">3</span> Weekly Goal Confetti &amp; Interactive Spotlight Tutorial</h2>
+        <span class="badge">Delight &amp; Onboarding</span>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-green);"></span>Confetti on Weekly Habit Goal 🎉</h4>
+          <ul>
+            <li>When toggling a habit causes its count for that week to reach its <code>weeklyTarget</code> (e.g. <strong>4 of 4</strong> days for Running), fire a crisp canvas confetti burst!</li>
+            <li>Only triggers on the transition from <code>target - 1 → target</code> (not on uncheck).</li>
+            <li>Respects <code>prefers-reduced-motion</code> and auto-cleans up after animation.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-blue);"></span>Real Interactive "How it works" Tour</h4>
+          <ul>
+            <li>Remove Step 5 (<em>"The Labs habit ticks itself"</em>) — clean <strong>10-step</strong> tour with zero Labs mentions.</li>
+            <li>Fix <strong>Show me / Next / Back</strong> so every step actually <strong>scrolls to and spotlights the live UI element</strong> (Year grid, Week tile, Habits sidebar, Eye overlay button, Perfect weeks, Quarter goals, Category filters, Weeks/Days toggle, Share button) with a glowing focus ring &amp; smartly positioned popover card!</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Global Navbar & Refined Login Page -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">4</span> Global Navbar &amp; Minimal Login Page</h2>
+        <span class="badge">Layout &amp; Auth UX</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>What Changes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Shared Navbar</strong></td>
+              <td>New <code>Navbar.tsx</code> component shown across <strong>Board</strong>, <strong>Login</strong>, <strong>Auth Error</strong>, and <strong>404</strong> pages: Year Board logo/title on the left, clean Theme toggle + Sign in / User profile &amp; Sign out on the right. Keeps the Board toolbar cleanly focused on Year controls (<code>&lt; 2026 &gt;</code>, <code>This week</code>, <code>How it works</code>, <code>Weeks | Days</code>, <code>Settings</code>, <code>Share</code>).</td>
+            </tr>
+            <tr>
+              <td><strong>Login Page (<code>/login</code>)</strong></td>
+              <td>Renders inside the shared Navbar layout. Removes the <em>"Passwordless sign-in via GitHub or Google OAuth only."</em> text. Clean, centered, high-contrast card with crisp <strong>Continue with GitHub</strong> and <strong>Continue with Google</strong> buttons and a simple link back to the board.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. Execution Phases -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">5</span> Commit-by-Commit Implementation Order</h2>
+        <span class="badge">5 Commits</span>
+      </div>
+      <div class="phases">
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(161,131,238,0.18); color: var(--c-purple);">Step 1</span>
+          <div class="phase-body">
+            <h4>Shared Schema + D1 Migration + API Updates</h4>
+            <p>Add <code>archived</code> to <code>Habit</code> &amp; D1 (<code>0001_archive_habits.sql</code>), remove default Labs seeding, and block future-date habit toggles in <code>POST /api/habits/:id/toggle</code>.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(239,68,68,0.18); color: var(--c-red);">Step 2</span>
+          <div class="phase-body">
+            <h4>Remove Labs UI, Simplify Settings, Add Archive/Unarchive &amp; Past-Only Guard</h4>
+            <p>Clean up Sidebar, WeekDrawer, Toolbar, and Modals; add Archived habits list with Unarchive; disable future day cells in WeekDrawer.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(67,181,131,0.18); color: var(--c-green);">Step 3</span>
+          <div class="phase-body">
+            <h4>Confetti Celebration &amp; Interactive Spotlight Tutorial</h4>
+            <p>Add lightweight canvas confetti on weekly habit goal completion, and upgrade <code>TourModal</code> into a real 10-step interactive spotlight walkthrough (no Labs step).</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(107,149,240,0.18); color: var(--c-blue);">Step 4</span>
+          <div class="phase-body">
+            <h4>Shared Navbar &amp; Clean Login Page</h4>
+            <p>Add <code>Navbar.tsx</code> across all pages, remove the "Passwordless sign-in" copy on <code>/login</code>, and refine the Login page design.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(212,169,79,0.18); color: var(--c-amber);">Step 5</span>
+          <div class="phase-body">
+            <h4>Verify, Migrate Remote D1 &amp; Redeploy</h4>
+            <p>Run <code>pnpm lint</code>, <code>pnpm typecheck</code>, <code>pnpm build</code>, apply D1 migration <code>0001_archive_habits.sql</code>, and deploy both Cloudflare Worker &amp; Pages.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

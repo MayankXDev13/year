@@ -103,7 +103,8 @@ export function getPerfectWeeksStats(
   perfectWeekKeys: Set<string>
 } {
   const perfectWeekKeys = new Set<string>()
-  if (habits.length === 0) {
+  const activeHabits = habits.filter((h) => !h.archived)
+  if (activeHabits.length === 0) {
     return { total: 0, bestRun: 0, perfectWeekKeys }
   }
 
@@ -118,7 +119,7 @@ export function getPerfectWeeksStats(
       currentRun = 0
       continue
     }
-    const allHit = habits.every(
+    const allHit = activeHabits.every(
       (h) => getHabitWeekCount(h, week, habitCheckins, labEntries) >= h.weeklyTarget,
     )
     if (allHit) {

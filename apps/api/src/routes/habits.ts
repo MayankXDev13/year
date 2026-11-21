@@ -27,8 +27,9 @@ habitRoutes.post('/habits', async (c) => {
     name: body.name,
     color: body.color,
     weeklyTarget: body.weeklyTarget,
-    isLabs: body.isLabs ?? false,
-    dailyMinutesTarget: body.dailyMinutesTarget ?? null,
+    archived: body.archived ?? false,
+    isLabs: false,
+    dailyMinutesTarget: null,
     createdAt: new Date(),
   })
 
@@ -56,9 +57,7 @@ habitRoutes.patch('/habits/:id', async (c) => {
       ...(body.name !== undefined ? { name: body.name } : {}),
       ...(body.color !== undefined ? { color: body.color } : {}),
       ...(body.weeklyTarget !== undefined ? { weeklyTarget: body.weeklyTarget } : {}),
-      ...(body.dailyMinutesTarget !== undefined
-        ? { dailyMinutesTarget: body.dailyMinutesTarget }
-        : {}),
+      ...(body.archived !== undefined ? { archived: body.archived } : {}),
     })
     .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id)))
 
@@ -80,7 +79,22 @@ habitRoutes.delete('/habits/:id', async (c) => {
 habitRoutes.post('/habits/:id/toggle', async (c) => {
   const user = c.get('user')
   const habitId = c.req.param('id')
-  const { dateKey } = toggleHabitCheckinSchema.parse(await c.req.json())
+  const { dateKey, todayKey } = toggleHabitCheckinSchema.parse(await c.req.json())
+
+  // Enforce past & today only — block future habit check-ins
+  const maxAllowedDate = todayKey ?? new Date(Date.now() + 14 * 3_600_000).toISOString().slice(0, 10)
+  if (dateKey > maxAllowedDate) {
+    return c.json(
+      {
+        error: {
+          code: 'FUTURE_DATE_NOT_ALLOWED',
+          message: 'You can only update today or past days, not future dates.',
+        },
+      },
+      400,
+    )
+  }
+
   const db = drizzle(c.env.DB, { schema })
 
   const [habit] = await db

@@ -25,6 +25,7 @@ export const createHabitSchema = z.object({
   name: z.string().trim().min(1).max(80),
   color: habitColorSchema,
   weeklyTarget: z.number().int().min(1).max(7),
+  archived: z.boolean().optional(),
   isLabs: z.boolean().optional(),
   dailyMinutesTarget: z.number().int().min(5).max(480).optional(),
 })
@@ -33,6 +34,7 @@ export const updateHabitSchema = createHabitSchema.partial()
 
 export const toggleHabitCheckinSchema = z.object({
   dateKey: dateKeySchema,
+  todayKey: dateKeySchema.optional(),
 })
 
 export const createLabEntrySchema = z.object({
