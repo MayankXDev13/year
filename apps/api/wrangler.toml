@@ -6,9 +6,9 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "year-board-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "a39b7250-6659-4893-b6f0-a90a8a9a5f9b"
 migrations_dir = "drizzle"
 
 [vars]
-BETTER_AUTH_URL = "https://year-board-api.workers.dev"
+BETTER_AUTH_URL = "https://year-board-api.mayankxdev13.workers.dev"
 WEB_URL = "https://year-board-web.pages.dev"
