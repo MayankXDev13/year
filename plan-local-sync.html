@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Year Board — Local-First Guest Mode &amp; Sync-on-Login Plan</title>
+  <style>
+    :root {
+      --bg-card: var(--card, #18181b);
+      --bg-secondary: var(--secondary, #27272a);
+      --bg-code: var(--code-background, #111113);
+      --fg: var(--foreground, #f4f4f5);
+      --fg-muted: var(--muted-foreground, #a1a1aa);
+      --bd: var(--border, rgba(255, 255, 255, 0.12));
+      --c-orange: #ea580c;
+      --c-blue: var(--info, #6b95f0);
+      --c-green: var(--success, #43b583);
+      --c-purple: #a183ee;
+      --c-amber: var(--warning, #d4a94f);
+      --c-red: var(--destructive, #ef4444);
+      --c-teal: #35b4c4;
+      --rad: var(--radius, 10px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+      color: var(--fg);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header p {
+      margin: 3px 0 0;
+      font-size: 12.5px;
+      color: var(--fg-muted);
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--bd);
+      background: var(--bg-secondary);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--bd);
+      border-radius: var(--rad);
+      padding: 16px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      font-family: var(--font-mono, monospace);
+    }
+
+    .badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--bd);
+      color: var(--fg-muted);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .flow-step {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 11px;
+    }
+
+    .flow-kicker {
+      font-family: var(--font-mono, monospace);
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .flow-step h4 {
+      margin: 0 0 4px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .flow-step p {
+      margin: 0;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .card h4 {
+      margin: 0 0 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card ul {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    .card li { margin-bottom: 4px; }
+    .card li strong { color: var(--fg); }
+
+    code {
+      font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+      font-size: 11px;
+      background: var(--bg-code);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--bd);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--bd);
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--fg-muted);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .phases {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .phase-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+    }
+
+    .phase-tag {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .phase-body h4 {
+      margin: 0 0 2px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .phase-body p {
+      margin: 0;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1>Local-First Guest Mode &amp; Sync-on-Login Plan</h1>
+        <p>Full guest interactivity in <code>localStorage</code> · Safe local clear · Automatic &amp; conflict-safe merge into Cloudflare D1 on login</p>
+      </div>
+      <div class="pills">
+        <span class="pill"><span class="dot" style="background: var(--c-teal);"></span>Full Guest Access</span>
+        <span class="pill"><span class="dot" style="background: var(--c-amber);"></span>Clear Local Data</span>
+        <span class="pill"><span class="dot" style="background: var(--c-green);"></span>D1 Merge on Login</span>
+      </div>
+    </div>
+
+    <!-- 1. End-to-End Lifecycle -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">1</span> User Lifecycle Flow</h2>
+        <span class="badge">Zero Friction</span>
+      </div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-kicker" style="color: var(--c-blue);">STEP 01 · GUEST</div>
+          <h4>Use Without Login</h4>
+          <p>Add habits, check-ins, plans, goals &amp; notes directly in <code>localStorage</code>. Sets <code>hasLocalEdits=true</code> on first real edit.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-kicker" style="color: var(--c-amber);">STEP 02 · RESET</div>
+          <h4>Clear Local Board</h4>
+          <p>Guest-only <strong>Clear local data</strong> option in Board Settings (with confirmation) to wipe habits/plans and start blank.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-kicker" style="color: var(--c-purple);">STEP 03 · LOGIN</div>
+          <h4>Sign In (GitHub/Google)</h4>
+          <p>Detects <code>hasLocalEdits</code>. Auto-imports into empty D1 accounts, or prompts <strong>Merge vs Keep Cloud</strong> if cloud data exists.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-kicker" style="color: var(--c-green);">STEP 04 · SYNCED</div>
+          <h4>Cloud D1 Mode</h4>
+          <p>All changes persist directly to Cloudflare D1 via TanStack Query. Signing out clears query cache cleanly.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Local State & API Contract -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">2</span> Technical Design</h2>
+        <span class="badge">Shared + API + Web</span>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-teal);"></span>Client Local Storage Guard</h4>
+          <ul>
+            <li>Track <code>year-board-local-dirty</code> in <code>localStorage</code> so untouched Sample Year data is <strong>never</strong> accidentally imported into a real user account.</li>
+            <li>Any guest mutation (create/edit/archive/delete habit, toggle check-in, add plan/goal, edit week focus/notes, or clear board) sets <code>hasLocalEdits = true</code>.</li>
+            <li>Guest-only <strong>Clear local data</strong> button in Board Settings resets to an empty board with a quick inline confirm step.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span class="dot" style="background: var(--c-purple);"></span><code>POST /api/board/import</code> (D1)</h4>
+          <ul>
+            <li>Validated with <code>importBoardSchema</code> in <code>packages/shared</code>.</li>
+            <li>Remaps local habit IDs to fresh UUIDs, deduplicates by habit name if already present in D1, and imports all <code>habitCheckins</code> with <code>ON CONFLICT DO NOTHING</code> (past &amp; today only).</li>
+            <li>Imports local <code>plans</code>, <code>quarterGoals</code> (respecting max 5/quarter), and merges <code>weekMeta</code> without clobbering existing cloud notes.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Sync Decision Matrix -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">3</span> Login Sync Scenarios</h2>
+        <span class="badge">Conflict-Safe</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Local Edits?</th>
+              <th>Cloud D1 Account</th>
+              <th>Behavior on Sign-In</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>false</code> (untouched sample)</td>
+              <td>Empty or Existing</td>
+              <td>Loads cloud D1 board directly. Never imports fake sample data.</td>
+            </tr>
+            <tr>
+              <td><code>true</code> (guest made edits)</td>
+              <td>Empty (0 habits &amp; 0 plans)</td>
+              <td>Auto-calls <code>POST /api/board/import</code>, clears dirty flag, shows <em>"Synced your local board to your account"</em> toast.</td>
+            </tr>
+            <tr>
+              <td><code>true</code> (guest made edits)</td>
+              <td>Existing cloud data</td>
+              <td>Opens <strong>Sync Local Changes Modal</strong>: <strong>Merge local into account</strong> or <strong>Keep cloud data only</strong>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. Implementation Steps -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="num">4</span> Commit-by-Commit Plan</h2>
+        <span class="badge">3 Commits</span>
+      </div>
+      <div class="phases">
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(161,131,238,0.18); color: var(--c-purple);">Step 1</span>
+          <div class="phase-body">
+            <h4>Shared Schema &amp; <code>POST /api/board/import</code> Endpoint</h4>
+            <p>Add <code>importBoardSchema</code> in <code>packages/shared</code> and idempotent D1 merge route in <code>apps/api/src/routes/board.ts</code>.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(53,180,196,0.18); color: var(--c-teal);">Step 2</span>
+          <div class="phase-body">
+            <h4>Guest Dirty Flag &amp; Clear Local Data in Settings</h4>
+            <p>Track <code>hasLocalEdits</code> in <code>BoardPage.tsx</code> and add guest-only <strong>Clear local data</strong> (with confirmation) to <code>Toolbar.tsx</code>.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(67,181,131,0.18); color: var(--c-green);">Step 3</span>
+          <div class="phase-body">
+            <h4>Auto-Sync &amp; Merge Modal on Login + Push</h4>
+            <p>Add <code>importBoard</code> TanStack Query mutation, auto-sync for new accounts, <code>SyncLocalModal</code> for existing accounts, verify build/lint/typecheck, and push to <code>main</code>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

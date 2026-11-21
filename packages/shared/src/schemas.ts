@@ -67,3 +67,36 @@ export const updatePreferencesSchema = z.object({
   hiddenCategories: z.array(categoryIdSchema).optional(),
   tourSeen: z.boolean().optional(),
 })
+
+export const importBoardSchema = z.object({
+  todayKey: dateKeySchema.optional(),
+  plans: z
+    .array(
+      createPlanSchema.extend({
+        id: z.string().optional(),
+      }),
+    )
+    .max(500)
+    .default([]),
+  habits: z
+    .array(
+      createHabitSchema.extend({
+        id: z.string(),
+      }),
+    )
+    .max(50)
+    .default([]),
+  habitCheckins: z.record(z.string(), z.record(dateKeySchema, z.boolean())).default({}),
+  quarterGoals: z
+    .array(
+      createGoalSchema.extend({
+        id: z.string().optional(),
+        done: z.boolean().default(false),
+      }),
+    )
+    .max(100)
+    .default([]),
+  weekMeta: z.record(weekKeySchema, upsertWeekMetaSchema).default({}),
+})
+
+export type ImportBoardInput = z.infer<typeof importBoardSchema>

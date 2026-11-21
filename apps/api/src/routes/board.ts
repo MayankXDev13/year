@@ -1,4 +1,5 @@
 import {
+  importBoardSchema,
   updatePreferencesSchema,
   type CategoryId,
   type Habit,
@@ -155,6 +156,151 @@ boardRoutes.patch('/preferences', async (c) => {
       target: schema.userPreferences.userId,
       set: patch,
     })
+
+  return c.json({ ok: true })
+})
+
+boardRoutes.post('/board/import', async (c) => {
+  const user = c.get('user')
+  const body = importBoardSchema.parse(await c.req.json())
+  const db = drizzle(c.env.DB, { schema })
+  const maxAllowedDate =
+    body.todayKey ?? new Date(Date.now() + 14 * 3_600_000).toISOString().slice(0, 10)
+
+  const [existingHabits, existingPlans, existingGoals, existingWeekMeta] = await Promise.all([
+    db.select().from(schema.habits).where(eq(schema.habits.userId, user.id)),
+    db.select().from(schema.plans).where(eq(schema.plans.userId, user.id)),
+    db.select().from(schema.quarterGoals).where(eq(schema.quarterGoals.userId, user.id)),
+    db.select().from(schema.weekMeta).where(eq(schema.weekMeta.userId, user.id)),
+  ])
+
+  // 1. Merge habits (dedupe by lowercase name) and build localId -> dbId map
+  const habitByName = new Map(existingHabits.map((h) => [h.name.trim().toLowerCase(), h.id]))
+  const localToDbHabitId = new Map<string, string>()
+
+  for (const h of body.habits) {
+    if (h.isLabs) continue
+    const key = h.name.trim().toLowerCase()
+    const existingId = habitByName.get(key)
+    if (existingId) {
+      localToDbHabitId.set(h.id, existingId)
+    } else {
+      const newId = crypto.randomUUID()
+      await db.insert(schema.habits).values({
+        id: newId,
+        userId: user.id,
+        name: h.name,
+        color: h.color,
+        weeklyTarget: h.weeklyTarget,
+        archived: h.archived ?? false,
+        isLabs: false,
+        dailyMinutesTarget: null,
+        createdAt: new Date(),
+      })
+      habitByName.set(key, newId)
+      localToDbHabitId.set(h.id, newId)
+    }
+  }
+
+  // 2. Merge habit check-ins (past & today only, idempotent)
+  for (const [localHabitId, dateMap] of Object.entries(body.habitCheckins)) {
+    const dbHabitId = localToDbHabitId.get(localHabitId)
+    if (!dbHabitId) continue
+    const rows = Object.entries(dateMap)
+      .filter(([dateKey, done]) => done && dateKey <= maxAllowedDate)
+      .map(([dateKey]) => ({
+        id: crypto.randomUUID(),
+        habitId: dbHabitId,
+        userId: user.id,
+        dateKey,
+      }))
+
+    for (let i = 0; i < rows.length; i += 25) {
+      const chunk = rows.slice(i, i + 25)
+      if (chunk.length > 0) {
+        await db.insert(schema.habitCheckins).values(chunk).onConflictDoNothing()
+      }
+    }
+  }
+
+  // 3. Merge plans (dedupe by title + startDate + endDate)
+  const planSig = new Set(
+    existingPlans.map((p) => `${p.title.trim().toLowerCase()}|${p.startDate}|${p.endDate}`),
+  )
+  for (const p of body.plans) {
+    const sig = `${p.title.trim().toLowerCase()}|${p.startDate}|${p.endDate}`
+    if (planSig.has(sig)) continue
+    await db.insert(schema.plans).values({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      title: p.title,
+      startDate: p.startDate,
+      endDate: p.endDate,
+      category: p.category,
+      status: p.status,
+      notes: p.notes ?? null,
+      createdAt: new Date(),
+    })
+    planSig.add(sig)
+  }
+
+  // 4. Merge quarter goals (dedupe & enforce max 5 per quarter)
+  const goalCountByQuarter = new Map<string, number>()
+  const goalSig = new Set<string>()
+  for (const g of existingGoals) {
+    const qk = `${g.year}-Q${g.quarter}`
+    goalCountByQuarter.set(qk, (goalCountByQuarter.get(qk) ?? 0) + 1)
+    goalSig.add(`${qk}|${g.title.trim().toLowerCase()}`)
+  }
+  for (const g of body.quarterGoals) {
+    const qk = `${g.year}-Q${g.quarter}`
+    const sig = `${qk}|${g.title.trim().toLowerCase()}`
+    if (goalSig.has(sig)) continue
+    const count = goalCountByQuarter.get(qk) ?? 0
+    if (count >= 5) continue
+    await db.insert(schema.quarterGoals).values({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      year: g.year,
+      quarter: g.quarter,
+      title: g.title,
+      done: g.done,
+      createdAt: new Date(),
+    })
+    goalCountByQuarter.set(qk, count + 1)
+    goalSig.add(sig)
+  }
+
+  // 5. Merge weekMeta (only fill empty cloud fields)
+  const weekMetaByKey = new Map(existingWeekMeta.map((w) => [w.weekKey, w]))
+  for (const [weekKey, meta] of Object.entries(body.weekMeta)) {
+    if (!meta.focus.trim() && !meta.notes.trim()) continue
+    const existing = weekMetaByKey.get(weekKey)
+    if (!existing) {
+      await db.insert(schema.weekMeta).values({
+        userId: user.id,
+        weekKey,
+        focus: meta.focus,
+        notes: meta.notes,
+      })
+    } else if (!existing.focus.trim() || !existing.notes.trim()) {
+      await db
+        .insert(schema.weekMeta)
+        .values({
+          userId: user.id,
+          weekKey,
+          focus: existing.focus.trim() ? existing.focus : meta.focus,
+          notes: existing.notes.trim() ? existing.notes : meta.notes,
+        })
+        .onConflictDoUpdate({
+          target: [schema.weekMeta.userId, schema.weekMeta.weekKey],
+          set: {
+            focus: existing.focus.trim() ? existing.focus : meta.focus,
+            notes: existing.notes.trim() ? existing.notes : meta.notes,
+          },
+        })
+    }
+  }
 
   return c.json({ ok: true })
 })
