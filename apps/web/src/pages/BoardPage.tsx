@@ -104,15 +104,6 @@ export function BoardPage() {
   }, [localData])
 
   useEffect(() => {
-    const root = document.documentElement
-    if (data.theme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-  }, [data.theme])
-
-  useEffect(() => {
     if (!dragRange) return
     const handleMouseUp = () => {
       if (dragDidMoveRef.current) {

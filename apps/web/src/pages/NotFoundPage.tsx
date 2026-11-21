@@ -5,7 +5,7 @@ export function NotFoundPage() {
   const location = useLocation()
 
   return (
-    <div className="yb-backdrop flex min-h-screen items-center justify-center bg-[var(--background)] px-4 text-[var(--foreground)]">
+    <div className="yb-backdrop flex min-h-[calc(100vh-57px)] items-center justify-center bg-[var(--background)] px-4 text-[var(--foreground)]">
       <div className="w-full max-w-md rounded-2xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-7 text-center shadow-2xl">
         <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-[var(--accent-surface)] text-[var(--muted-foreground)]">
           <CalendarRange className="size-6" />

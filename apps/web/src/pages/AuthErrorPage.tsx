@@ -52,7 +52,7 @@ export function AuthErrorPage() {
     }
 
   return (
-    <div className="yb-backdrop flex min-h-screen items-center justify-center bg-[var(--background)] px-4 text-[var(--foreground)]">
+    <div className="yb-backdrop flex min-h-[calc(100vh-57px)] items-center justify-center bg-[var(--background)] px-4 text-[var(--foreground)]">
       <div className="w-full max-w-md rounded-2xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-6 shadow-2xl">
         <div className="mb-4 flex items-center gap-3">
           <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-red-500/15 text-red-400">

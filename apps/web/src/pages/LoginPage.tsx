@@ -19,18 +19,18 @@ export function LoginPage() {
   }
 
   return (
-    <div className="yb-backdrop flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4 text-[var(--foreground)]">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-6 shadow-2xl">
-        <div className="mb-5 flex items-center gap-2.5">
-          <div className="grid size-10 place-items-center rounded-xl bg-[#ea580c]/20 text-[#ea580c] ring-1 ring-[#ea580c]/30">
+    <div className="yb-backdrop flex min-h-[calc(100vh-57px)] flex-col items-center justify-center bg-[var(--background)] px-4 py-12 text-[var(--foreground)]">
+      <div className="w-full max-w-[380px] rounded-2xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-7 shadow-2xl">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-3 grid size-11 place-items-center rounded-xl bg-[#ea580c]/20 text-[#ea580c] ring-1 ring-[#ea580c]/30">
             <CalendarRange className="size-5" />
           </div>
-          <div>
-            <h1 className="font-montserrat text-lg font-bold">Sign in to Year Board</h1>
-            <p className="text-xs text-[var(--muted-foreground)]">
-              Sync your plans, habits &amp; quarter goals to the cloud
-            </p>
-          </div>
+          <h1 className="font-montserrat text-xl font-bold tracking-tight">
+            Sign in to Year Board
+          </h1>
+          <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+            Plan your year, track daily habits, and sync across devices.
+          </p>
         </div>
 
         {errorMsg && (
@@ -42,7 +42,7 @@ export function LoginPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           <button
             type="button"
             disabled={loadingProvider !== null}
@@ -91,17 +91,13 @@ export function LoginPage() {
           </button>
         </div>
 
-        <p className="mt-4 text-center text-[11px] text-[var(--muted-foreground)]">
-          Passwordless sign-in via GitHub or Google OAuth only.
-        </p>
-
-        <div className="mt-5 border-t border-[var(--card-edge)] pt-4 text-center">
+        <div className="mt-6 border-t border-[var(--card-edge)] pt-4 text-center">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
           >
             <ArrowLeft className="size-3.5" />
-            Continue with Sample Year
+            Back to Year Board
           </Link>
         </div>
       </div>
