@@ -831,3 +831,68 @@ export function ShareModal({
     </div>
   )
 }
+
+/* ============================================================================
+ * 4. Sync Local Changes Modal (Guest -> Authenticated Merge)
+ * ========================================================================== */
+
+interface SyncLocalModalProps {
+  open: boolean
+  habitsCount: number
+  plansCount: number
+  goalsCount: number
+  isSyncing: boolean
+  onMerge: () => void
+  onKeepCloudOnly: () => void
+}
+
+export function SyncLocalModal({
+  open,
+  habitsCount,
+  plansCount,
+  goalsCount,
+  isSyncing,
+  onMerge,
+  onKeepCloudOnly,
+}: SyncLocalModalProps) {
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4 backdrop-blur-xs">
+      <div
+        role="dialog"
+        aria-label="Sync local changes"
+        className="w-full max-w-md rounded-2xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-5 shadow-2xl"
+      >
+        <h3 className="font-montserrat text-base font-bold text-[var(--foreground)]">
+          Sync your local changes?
+        </h3>
+        <p className="mt-2 text-xs leading-relaxed text-[var(--muted-foreground)]">
+          You made changes on this browser before signing in ({habitsCount}{' '}
+          {habitsCount === 1 ? 'habit' : 'habits'}, {plansCount}{' '}
+          {plansCount === 1 ? 'plan' : 'plans'}, {goalsCount}{' '}
+          {goalsCount === 1 ? 'goal' : 'goals'}). Your account already has saved data.
+        </p>
+
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={isSyncing}
+            onClick={onMerge}
+            className="h-10 w-full cursor-pointer rounded-xl bg-[var(--foreground)] px-4 text-xs font-semibold text-[var(--background)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSyncing ? 'Syncing to your account...' : 'Merge local changes into my account'}
+          </button>
+          <button
+            type="button"
+            disabled={isSyncing}
+            onClick={onKeepCloudOnly}
+            className="h-10 w-full cursor-pointer rounded-xl border border-[var(--card-edge-hover)] px-4 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-surface)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Keep my cloud account only
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

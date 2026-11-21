@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, Loader2, X } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
 import {
   getHabitWeekCount,
   getISOWeekInfoForDate,
@@ -19,7 +19,7 @@ import {
   type YearBoardData,
 } from '@year-board/shared'
 import { DaysBoard } from '../components/DaysBoard'
-import { HabitModal, PlanModal, ShareModal } from '../components/Modals'
+import { HabitModal, PlanModal, ShareModal, SyncLocalModal } from '../components/Modals'
 import { Sidebar } from '../components/Sidebar'
 import { SpotlightTour } from '../components/SpotlightTour'
 import { Toolbar } from '../components/Toolbar'
@@ -29,9 +29,18 @@ import { ApiError } from '../lib/api'
 import { useSession } from '../lib/auth-client'
 import { useBoardMutations, useBoardQuery } from '../lib/queries'
 import { fireConfetti } from '../utils/confetti'
-import { createSampleYearBoardData } from '../utils/sampleData'
+import { createEmptyYearBoardData, createSampleYearBoardData } from '../utils/sampleData'
 
 const STORAGE_KEY = 'year-board-data-v1'
+const LOCAL_DIRTY_KEY = 'year-board-local-dirty'
+
+function loadLocalDirty(): boolean {
+  try {
+    return localStorage.getItem(LOCAL_DIRTY_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
 
 function loadLocalData(): YearBoardData {
   try {
@@ -66,13 +75,94 @@ export function BoardPage() {
   const isAuthenticated = Boolean(authUser)
 
   const [localData, setLocalData] = useState<YearBoardData>(loadLocalData)
+  const [hasLocalEdits, setHasLocalEdits] = useState<boolean>(loadLocalDirty)
+  const [syncModalOpen, setSyncModalOpen] = useState(false)
   const [toastError, setToastError] = useState<string | null>(null)
+  const [toastSuccess, setToastSuccess] = useState<string | null>(null)
+  const autoSyncedRef = useRef(false)
 
   const boardQuery = useBoardQuery(isAuthenticated)
   const mutations = useBoardMutations((msg) => {
     if (msg.toLowerCase().includes('please sign in')) return
     setToastError(msg)
   })
+
+  const markLocalDirty = useCallback((dirty: boolean) => {
+    setHasLocalEdits(dirty)
+    try {
+      if (dirty) localStorage.setItem(LOCAL_DIRTY_KEY, 'true')
+      else localStorage.removeItem(LOCAL_DIRTY_KEY)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const updateGuestData = useCallback(
+    (updater: (prev: YearBoardData) => YearBoardData) => {
+      setLocalData(updater)
+      markLocalDirty(true)
+    },
+    [markLocalDirty],
+  )
+
+  const buildImportPayload = useCallback(
+    () => ({
+      todayKey,
+      plans: localData.plans,
+      habits: localData.habits.filter((h) => !h.isLabs),
+      habitCheckins: localData.habitCheckins,
+      quarterGoals: localData.quarterGoals,
+      weekMeta: localData.weekMeta,
+    }),
+    [todayKey, localData],
+  )
+
+  // Auto-sync or prompt when an authenticated user arrives with local guest edits
+  useEffect(() => {
+    if (!isAuthenticated || !boardQuery.isSuccess || !hasLocalEdits || autoSyncedRef.current) {
+      return
+    }
+    const localHasItems =
+      localData.habits.length > 0 ||
+      localData.plans.length > 0 ||
+      localData.quarterGoals.length > 0 ||
+      Object.keys(localData.weekMeta).length > 0
+
+    if (!localHasItems) {
+      markLocalDirty(false)
+      return
+    }
+
+    const cloudIsEmpty =
+      boardQuery.data.habits.length === 0 &&
+      boardQuery.data.plans.length === 0 &&
+      boardQuery.data.quarterGoals.length === 0
+
+    autoSyncedRef.current = true
+    if (cloudIsEmpty) {
+      mutations.importBoard.mutate(buildImportPayload(), {
+        onSuccess: () => {
+          markLocalDirty(false)
+          setToastSuccess('Synced your local Year Board to your account!')
+          setTimeout(() => setToastSuccess(null), 4000)
+        },
+        onError: () => {
+          autoSyncedRef.current = false
+        },
+      })
+    } else {
+      setSyncModalOpen(true)
+    }
+  }, [
+    isAuthenticated,
+    boardQuery.isSuccess,
+    boardQuery.data,
+    hasLocalEdits,
+    localData,
+    markLocalDirty,
+    mutations.importBoard,
+    buildImportPayload,
+  ])
 
   const data: YearBoardData = isAuthenticated && boardQuery.data ? boardQuery.data : localData
 
@@ -241,7 +331,7 @@ export function BoardPage() {
         return
       }
 
-      setLocalData((prev) => {
+      updateGuestData((prev) => {
         const currentMap = prev.habitCheckins[habitId] ?? {}
         const prevDone = !!currentMap[dateKey]
         const nextMap = { ...currentMap }
@@ -253,7 +343,7 @@ export function BoardPage() {
         }
       })
     },
-    [todayKey, data.habits, data.habitCheckins, data.labEntries, isAuthenticated, mutations.toggleHabitCheckin],
+    [todayKey, data.habits, data.habitCheckins, data.labEntries, isAuthenticated, mutations.toggleHabitCheckin, updateGuestData],
   )
 
   const handleSavePlan = useCallback(
@@ -262,7 +352,7 @@ export function BoardPage() {
         mutations.savePlan.mutate({ plan: planInput, existingId })
         return
       }
-      setLocalData((prev) => {
+      updateGuestData((prev) => {
         if (existingId) {
           return {
             ...prev,
@@ -277,7 +367,7 @@ export function BoardPage() {
         }
       })
     },
-    [isAuthenticated, mutations.savePlan],
+    [isAuthenticated, mutations.savePlan, updateGuestData],
   )
 
   const handleDeletePlan = useCallback(
@@ -286,12 +376,12 @@ export function BoardPage() {
         mutations.deletePlan.mutate(planId)
         return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         plans: prev.plans.filter((p) => p.id !== planId),
       }))
     },
-    [isAuthenticated, mutations.deletePlan],
+    [isAuthenticated, mutations.deletePlan, updateGuestData],
   )
 
   const handleCyclePlanStatus = useCallback(
@@ -304,12 +394,12 @@ export function BoardPage() {
         mutations.updatePlanStatus.mutate({ planId, status: next })
         return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         plans: prev.plans.map((p) => (p.id === planId ? { ...p, status: next } : p)),
       }))
     },
-    [data.plans, isAuthenticated, mutations.updatePlanStatus],
+    [data.plans, isAuthenticated, mutations.updatePlanStatus, updateGuestData],
   )
 
   const handleSaveHabit = useCallback(
@@ -318,7 +408,7 @@ export function BoardPage() {
         mutations.saveHabit.mutate({ habit: habitInput, existingId })
         return
       }
-      setLocalData((prev) => {
+      updateGuestData((prev) => {
         if (existingId) {
           return {
             ...prev,
@@ -333,7 +423,7 @@ export function BoardPage() {
         }
       })
     },
-    [isAuthenticated, mutations.saveHabit],
+    [isAuthenticated, mutations.saveHabit, updateGuestData],
   )
 
   const handleToggleArchiveHabit = useCallback(
@@ -342,12 +432,12 @@ export function BoardPage() {
         mutations.toggleArchiveHabit.mutate({ habitId, archived })
         return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         habits: prev.habits.map((h) => (h.id === habitId ? { ...h, archived } : h)),
       }))
     },
-    [isAuthenticated, mutations.toggleArchiveHabit],
+    [isAuthenticated, mutations.toggleArchiveHabit, updateGuestData],
   )
 
   const handleDeleteHabit = useCallback(
@@ -357,12 +447,12 @@ export function BoardPage() {
         mutations.deleteHabit.mutate(habitId)
         return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         habits: prev.habits.filter((h) => h.id !== habitId),
       }))
     },
-    [isAuthenticated, mutations.deleteHabit],
+    [isAuthenticated, mutations.deleteHabit, updateGuestData],
   )
 
   const handleUpdateWeekMeta = useCallback(
@@ -374,13 +464,18 @@ export function BoardPage() {
         weekMetaTimerRef.current = setTimeout(() => {
           mutations.upsertWeekMeta.mutate({ weekKey, meta: nextMeta })
         }, 350)
+        setLocalData((prev) => ({
+          ...prev,
+          weekMeta: { ...prev.weekMeta, [weekKey]: nextMeta },
+        }))
+        return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         weekMeta: { ...prev.weekMeta, [weekKey]: nextMeta },
       }))
     },
-    [data.weekMeta, isAuthenticated, mutations.upsertWeekMeta],
+    [data.weekMeta, isAuthenticated, mutations.upsertWeekMeta, updateGuestData],
   )
 
   const handleToggleGoal = useCallback(
@@ -391,14 +486,14 @@ export function BoardPage() {
         mutations.toggleGoal.mutate({ goalId, done: !target.done })
         return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         quarterGoals: prev.quarterGoals.map((g) =>
           g.id === goalId ? { ...g, done: !g.done } : g,
         ),
       }))
     },
-    [data.quarterGoals, isAuthenticated, mutations.toggleGoal],
+    [data.quarterGoals, isAuthenticated, mutations.toggleGoal, updateGuestData],
   )
 
   const handleAddGoal = useCallback(
@@ -407,7 +502,7 @@ export function BoardPage() {
         mutations.addGoal.mutate({ year, quarter, title })
         return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         quarterGoals: [
           ...prev.quarterGoals,
@@ -415,7 +510,7 @@ export function BoardPage() {
         ],
       }))
     },
-    [year, isAuthenticated, mutations.addGoal],
+    [year, isAuthenticated, mutations.addGoal, updateGuestData],
   )
 
   const handleDeleteGoal = useCallback(
@@ -424,13 +519,22 @@ export function BoardPage() {
         mutations.deleteGoal.mutate(goalId)
         return
       }
-      setLocalData((prev) => ({
+      updateGuestData((prev) => ({
         ...prev,
         quarterGoals: prev.quarterGoals.filter((g) => g.id !== goalId),
       }))
     },
-    [isAuthenticated, mutations.deleteGoal],
+    [isAuthenticated, mutations.deleteGoal, updateGuestData],
   )
+
+  const handleClearLocalData = useCallback(() => {
+    setActiveHabitOverlayId(null)
+    setOpenWeekKey(null)
+    setLocalData((prev) => ({ ...createEmptyYearBoardData(), theme: prev.theme }))
+    markLocalDirty(true)
+    setToastSuccess('Cleared local Year Board data.')
+    setTimeout(() => setToastSuccess(null), 3000)
+  }, [markLocalDirty])
 
   const handleToggleCategory = useCallback(
     (category: CategoryId) => {
@@ -479,9 +583,32 @@ export function BoardPage() {
         density={data.density}
         onDensityChange={(density: BoardDensity) => handleUpdatePref({ density })}
         onOpenShare={(scope) => setShareScope(scope)}
+        onClearLocalData={!isAuthenticated ? handleClearLocalData : undefined}
         currentWeekInfo={currentWeekInfo}
         currentMonthIndex={todayDate.getMonth()}
       />
+
+      {toastSuccess && (
+        <div className="mx-auto max-w-[1440px] px-4 pt-3 sm:px-6">
+          <div
+            role="status"
+            style={{ background: 'var(--yb-ok-tint)', color: 'var(--yb-ok-ink)' }}
+            className="flex items-center justify-between gap-3 rounded-xl border border-[var(--yb-ok)]/40 px-3.5 py-2.5 text-xs"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 shrink-0" style={{ color: 'var(--yb-ok)' }} />
+              <span>{toastSuccess}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastSuccess(null)}
+              className="grid size-6 cursor-pointer place-items-center rounded hover:bg-black/10 dark:hover:bg-white/10"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {(toastError || queryErrorMessage) && (
         <div className="mx-auto max-w-[1440px] px-4 pt-3 sm:px-6">
@@ -666,6 +793,28 @@ export function BoardPage() {
         onOwnerNameChange={(ownerName) => handleUpdatePref({ ownerName })}
         theme={data.theme}
         onClose={() => setShareScope(null)}
+      />
+
+      <SyncLocalModal
+        open={syncModalOpen}
+        habitsCount={localData.habits.filter((h) => !h.isLabs).length}
+        plansCount={localData.plans.length}
+        goalsCount={localData.quarterGoals.length}
+        isSyncing={mutations.importBoard.isPending}
+        onMerge={() => {
+          mutations.importBoard.mutate(buildImportPayload(), {
+            onSuccess: () => {
+              markLocalDirty(false)
+              setSyncModalOpen(false)
+              setToastSuccess('Merged your local changes into your account!')
+              setTimeout(() => setToastSuccess(null), 4000)
+            },
+          })
+        }}
+        onKeepCloudOnly={() => {
+          markLocalDirty(false)
+          setSyncModalOpen(false)
+        }}
       />
     </div>
   )

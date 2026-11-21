@@ -6,6 +6,7 @@ import {
   HelpCircle,
   Share,
   SlidersHorizontal,
+  Trash2,
 } from 'lucide-react'
 import {
   MONTH_ABBR,
@@ -26,6 +27,7 @@ interface ToolbarProps {
   density: BoardDensity
   onDensityChange: (density: BoardDensity) => void
   onOpenShare: (scope: ShareScope) => void
+  onClearLocalData?: () => void
   currentWeekInfo: ISOWeekInfo | undefined
   currentMonthIndex: number
 }
@@ -40,10 +42,12 @@ export function Toolbar({
   density,
   onDensityChange,
   onOpenShare,
+  onClearLocalData,
   currentWeekInfo,
   currentMonthIndex,
 }: ToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
   const shareRef = useRef<HTMLDivElement>(null)
@@ -173,7 +177,7 @@ export function Toolbar({
             {settingsOpen && (
               <div
                 role="menu"
-                className="absolute right-0 z-40 mt-2 w-56 rounded-xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-3.5 shadow-2xl"
+                className="absolute right-0 z-40 mt-2 w-60 rounded-xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-3.5 shadow-2xl"
               >
                 <div className="mb-1.5 text-xs font-medium text-[var(--muted-foreground)]">
                   Density
@@ -186,6 +190,7 @@ export function Toolbar({
                       onClick={() => {
                         onDensityChange(d)
                         setSettingsOpen(false)
+                        setConfirmClear(false)
                       }}
                       className={`h-8 cursor-pointer rounded-md text-xs font-medium capitalize transition-colors ${
                         density === d
@@ -197,6 +202,47 @@ export function Toolbar({
                     </button>
                   ))}
                 </div>
+
+                {onClearLocalData && (
+                  <div className="mt-3 border-t border-[var(--card-edge)] pt-3">
+                    {!confirmClear ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmClear(true)}
+                        className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10"
+                      >
+                        <Trash2 className="size-3.5" />
+                        Clear local data
+                      </button>
+                    ) : (
+                      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2.5">
+                        <p className="text-[11px] font-medium text-red-300">
+                          Clear all local habits &amp; plans?
+                        </p>
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmClear(false)}
+                            className="h-7 flex-1 cursor-pointer rounded-md border border-[var(--card-edge)] text-[11px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClearLocalData()
+                              setConfirmClear(false)
+                              setSettingsOpen(false)
+                            }}
+                            className="h-7 flex-1 cursor-pointer rounded-md bg-red-500 text-[11px] font-semibold text-white hover:bg-red-600"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

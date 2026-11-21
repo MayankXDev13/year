@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   Habit,
+  ImportBoardInput,
   Plan,
   PlanStatus,
   QuarterGoal,
@@ -258,6 +259,16 @@ export function useBoardMutations(onError: (msg: string) => void) {
     onSettled: invalidate,
   })
 
+  const importBoard = useMutation({
+    mutationFn: (payload: ImportBoardInput) =>
+      apiFetch<{ ok: true }>('/api/board/import', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: invalidate,
+    onError: (e) => handleErr(e, 'Failed to sync local data to your account'),
+  })
+
   const resetBoard = useMutation({
     mutationFn: () => apiFetch('/api/board/reset', { method: 'POST' }),
     onSuccess: invalidate,
@@ -278,6 +289,7 @@ export function useBoardMutations(onError: (msg: string) => void) {
     deleteGoal,
     upsertWeekMeta,
     updatePreferences,
+    importBoard,
     resetBoard,
   }
 }
