@@ -3,6 +3,11 @@ import { cors } from 'hono/cors'
 import { ZodError } from 'zod'
 import { createAuth } from './auth'
 import type { AppVariables, Env } from './env'
+import { boardRoutes } from './routes/board'
+import { goalRoutes } from './routes/goals'
+import { habitRoutes } from './routes/habits'
+import { planRoutes } from './routes/plans'
+import { weekRoutes } from './routes/weeks'
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>()
 
@@ -55,6 +60,13 @@ app.on(['GET', 'POST'], '/api/auth/*', async (c) => {
     )
   }
 })
+
+// Authenticated Year Board REST routes
+app.route('/api', boardRoutes)
+app.route('/api/plans', planRoutes)
+app.route('/api', habitRoutes)
+app.route('/api/goals', goalRoutes)
+app.route('/api/weeks', weekRoutes)
 
 // 404 handler for unknown API routes
 app.notFound((c) => {
