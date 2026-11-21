@@ -8,7 +8,9 @@ This repository includes two workflows in `.github/workflows/`:
 2. **`deploy.yml`** (runs on push to `main` and manual `workflow_dispatch`):
    - **Stage 1 (`verify`)**: Lint & Typecheck across `packages/shared`, `apps/api`, and `apps/web`
    - **Stage 2 (`deploy-pages`)**: Builds `apps/web` with `VITE_API_URL` and deploys to **Cloudflare Pages first**
-   - **Stage 3 (`deploy-api`)**: Applies remote D1 migrations (`wrangler d1 migrations apply year-board-db --remote`), deploys the **Cloudflare Worker**, and runs a 5-attempt `/api/health` smoke check
+   - **Stage 3 (`deploy-api`)**: Deploys the **Cloudflare Worker** and runs a 5-attempt `/api/health` smoke check
+
+> **Database Migrations Policy:** D1 migrations are intentionally **not** run in GitHub Actions. Always test and apply migrations manually from your local machine (`pnpm db:migrate:local` then `pnpm db:migrate:remote`) before merging/deploying schema changes.
 
 ## Required GitHub Repository Secrets
 

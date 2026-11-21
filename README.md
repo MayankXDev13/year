@@ -57,4 +57,4 @@ A full-stack Turborepo Year Board wall planner built with React, TanStack Query,
    - `VITE_API_URL` (your deployed Worker URL, e.g. `https://year-board-api.<subdomain>.workers.dev`)
    - Optional repo variable: `CF_PAGES_PROJECT_NAME` (defaults to `year-board-web`)
 
-Every push to `main` runs: **Verify → Deploy Cloudflare Pages (first) → Apply D1 Migrations → Deploy Cloudflare Worker → `/api/health` Smoke Check**.
+Every push to `main` runs: **Verify → Deploy Cloudflare Pages (first) → Deploy Cloudflare Worker → `/api/health` Smoke Check**. Run D1 migrations manually (`pnpm db:migrate:local` / `pnpm db:migrate:remote`) before deploying schema changes.

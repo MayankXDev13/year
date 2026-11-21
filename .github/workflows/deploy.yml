@@ -78,7 +78,7 @@ jobs:
         run: ./apps/api/node_modules/.bin/wrangler pages deploy apps/web/dist --project-name=${{ vars.CF_PAGES_PROJECT_NAME || 'year-board-web' }} --branch=main
 
   deploy-api:
-    name: Migrate D1 & Deploy Cloudflare Worker (API)
+    name: Deploy Cloudflare Worker (API)
     needs: deploy-pages
     runs-on: ubuntu-latest
     steps:
@@ -96,13 +96,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Apply Cloudflare D1 migrations
-        working-directory: apps/api
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler d1 migrations apply year-board-db --remote
 
       - name: Deploy Cloudflare Worker
         working-directory: apps/api
