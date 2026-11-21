@@ -1,0 +1,7 @@
+BETTER_AUTH_SECRET="replace-with-a-32-char-random-secret"
+BETTER_AUTH_URL="http://localhost:8787"
+WEB_URL="http://localhost:5173"
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
