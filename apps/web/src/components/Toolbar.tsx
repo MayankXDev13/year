@@ -4,6 +4,8 @@ import {
   ChevronLeft,
   ChevronRight,
   HelpCircle,
+  LogIn,
+  LogOut,
   Moon,
   RotateCcw,
   Share,
@@ -11,6 +13,7 @@ import {
   Sun,
   Trash2,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   MONTH_ABBR,
   MONTH_NAMES,
@@ -38,6 +41,8 @@ interface ToolbarProps {
   onClearAll: () => void
   currentWeekInfo: ISOWeekInfo | undefined
   currentMonthIndex: number
+  user: { name: string; email: string; image?: string | null } | null
+  onSignOut: () => void
 }
 
 export function Toolbar({
@@ -58,6 +63,8 @@ export function Toolbar({
   onClearAll,
   currentWeekInfo,
   currentMonthIndex,
+  user,
+  onSignOut,
 }: ToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
@@ -364,6 +371,43 @@ export function Toolbar({
           >
             {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
+
+          {/* Auth control (GitHub / Google OAuth) */}
+          {user ? (
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] py-1 pr-1.5 pl-2">
+              {user.image ? (
+                <img
+                  src={user.image}
+                  alt={user.name}
+                  className="size-6 rounded-full object-cover"
+                />
+              ) : (
+                <span className="grid size-6 place-items-center rounded-full bg-[#ea580c]/25 text-[11px] font-bold text-[var(--foreground)]">
+                  {user.name.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              <span className="hidden max-w-[90px] truncate text-xs font-medium text-[var(--foreground)] md:inline">
+                {user.name.split(' ')[0]}
+              </span>
+              <button
+                type="button"
+                title="Sign out"
+                aria-label="Sign out"
+                onClick={onSignOut}
+                className="grid size-7 cursor-pointer place-items-center rounded-md text-[var(--muted-foreground)] hover:bg-[var(--accent-surface)] hover:text-[var(--foreground)]"
+              >
+                <LogOut className="size-3.5" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--card-edge-hover)] bg-[var(--surface)] px-3 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--accent-surface)]"
+            >
+              <LogIn className="size-4" />
+              <span>Sign in</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>
