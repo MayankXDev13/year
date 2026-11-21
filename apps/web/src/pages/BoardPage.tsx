@@ -76,7 +76,7 @@ export function BoardPage() {
 
   const [localData, setLocalData] = useState<YearBoardData>(loadLocalData)
   const [hasLocalEdits, setHasLocalEdits] = useState<boolean>(loadLocalDirty)
-  const [syncModalOpen, setSyncModalOpen] = useState(false)
+  const [syncDismissed, setSyncDismissed] = useState(false)
   const [toastError, setToastError] = useState<string | null>(null)
   const [toastSuccess, setToastSuccess] = useState<string | null>(null)
   const autoSyncedRef = useRef(false)
@@ -117,48 +117,55 @@ export function BoardPage() {
     [todayKey, localData],
   )
 
-  // Auto-sync or prompt when an authenticated user arrives with local guest edits
+  const localHasItems =
+    localData.habits.length > 0 ||
+    localData.plans.length > 0 ||
+    localData.quarterGoals.length > 0 ||
+    Object.keys(localData.weekMeta).length > 0
+
+  const cloudIsEmpty =
+    boardQuery.isSuccess &&
+    boardQuery.data.habits.length === 0 &&
+    boardQuery.data.plans.length === 0 &&
+    boardQuery.data.quarterGoals.length === 0
+
+  const syncModalOpen =
+    isAuthenticated &&
+    boardQuery.isSuccess &&
+    hasLocalEdits &&
+    localHasItems &&
+    !cloudIsEmpty &&
+    !syncDismissed
+
+  // Auto-sync when a first-time user signs in with local guest edits
   useEffect(() => {
-    if (!isAuthenticated || !boardQuery.isSuccess || !hasLocalEdits || autoSyncedRef.current) {
+    if (
+      !isAuthenticated ||
+      !boardQuery.isSuccess ||
+      !hasLocalEdits ||
+      !localHasItems ||
+      !cloudIsEmpty ||
+      autoSyncedRef.current
+    ) {
       return
     }
-    const localHasItems =
-      localData.habits.length > 0 ||
-      localData.plans.length > 0 ||
-      localData.quarterGoals.length > 0 ||
-      Object.keys(localData.weekMeta).length > 0
-
-    if (!localHasItems) {
-      markLocalDirty(false)
-      return
-    }
-
-    const cloudIsEmpty =
-      boardQuery.data.habits.length === 0 &&
-      boardQuery.data.plans.length === 0 &&
-      boardQuery.data.quarterGoals.length === 0
-
     autoSyncedRef.current = true
-    if (cloudIsEmpty) {
-      mutations.importBoard.mutate(buildImportPayload(), {
-        onSuccess: () => {
-          markLocalDirty(false)
-          setToastSuccess('Synced your local Year Board to your account!')
-          setTimeout(() => setToastSuccess(null), 4000)
-        },
-        onError: () => {
-          autoSyncedRef.current = false
-        },
-      })
-    } else {
-      setSyncModalOpen(true)
-    }
+    mutations.importBoard.mutate(buildImportPayload(), {
+      onSuccess: () => {
+        markLocalDirty(false)
+        setToastSuccess('Synced your local Year Board to your account!')
+        setTimeout(() => setToastSuccess(null), 4000)
+      },
+      onError: () => {
+        autoSyncedRef.current = false
+      },
+    })
   }, [
     isAuthenticated,
     boardQuery.isSuccess,
-    boardQuery.data,
     hasLocalEdits,
-    localData,
+    localHasItems,
+    cloudIsEmpty,
     markLocalDirty,
     mutations.importBoard,
     buildImportPayload,
@@ -805,7 +812,7 @@ export function BoardPage() {
           mutations.importBoard.mutate(buildImportPayload(), {
             onSuccess: () => {
               markLocalDirty(false)
-              setSyncModalOpen(false)
+              setSyncDismissed(true)
               setToastSuccess('Merged your local changes into your account!')
               setTimeout(() => setToastSuccess(null), 4000)
             },
@@ -813,7 +820,7 @@ export function BoardPage() {
         }}
         onKeepCloudOnly={() => {
           markLocalDirty(false)
-          setSyncModalOpen(false)
+          setSyncDismissed(true)
         }}
       />
     </div>
