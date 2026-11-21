@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Year Board — Full-Stack Turborepo Architecture Plan</title>
+  <style>
+    :root {
+      --bg-card: var(--card, #18181b);
+      --bg-secondary: var(--secondary, #27272a);
+      --bg-code: var(--code-background, #111113);
+      --fg: var(--foreground, #f4f4f5);
+      --fg-muted: var(--muted-foreground, #a1a1aa);
+      --bd: var(--border, rgba(255, 255, 255, 0.12));
+      --c-primary: var(--primary, #f97316);
+      --c-info: var(--info, #6b95f0);
+      --c-success: var(--success, #43b583);
+      --c-warning: var(--warning, #d4a94f);
+      --c-danger: var(--destructive, #ef4444);
+      --c-purple: #a183ee;
+      --c-teal: #35b4c4;
+      --rad: var(--radius, 10px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+      color: var(--fg);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .header-meta h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-meta p {
+      margin: 3px 0 0;
+      font-size: 12.5px;
+      color: var(--fg-muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--bd);
+      background: var(--bg-secondary);
+      color: var(--fg);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--bd);
+      border-radius: var(--rad);
+      padding: 16px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 14.5px;
+      font-weight: 700;
+    }
+
+    .step-num {
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      color: var(--fg);
+      font-family: var(--font-mono, monospace);
+    }
+
+    .badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--bd);
+      color: var(--fg-muted);
+    }
+
+    /* Architecture flow */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .arch-node {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 12px;
+      position: relative;
+    }
+
+    .arch-node .kicker {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .arch-node h3 {
+      margin: 0 0 4px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .arch-node p {
+      margin: 0;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+    }
+
+    /* Code / tree block */
+    pre {
+      margin: 0;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--bg-code);
+      border: 1px solid var(--bd);
+      font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+      font-size: 11.5px;
+      line-height: 1.55;
+      overflow-x: auto;
+      color: var(--fg);
+    }
+
+    code {
+      font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+      font-size: 11.5px;
+      background: var(--bg-secondary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--bd);
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--fg-muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Two-column cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .subcard {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .subcard h4 {
+      margin: 0 0 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subcard ul {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    .subcard li {
+      margin-bottom: 4px;
+    }
+
+    .subcard li strong {
+      color: var(--fg);
+    }
+
+    /* Pipeline stages */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 8px;
+    }
+
+    .stage {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .stage-label {
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--font-mono, monospace);
+      color: var(--fg-muted);
+      margin-bottom: 4px;
+    }
+
+    .stage-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stage-desc {
+      font-size: 11.5px;
+      color: var(--fg-muted);
+      margin: 0;
+    }
+
+    /* Phase roadmap */
+    .phases {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .phase-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+    }
+
+    .phase-tag {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .phase-content h4 {
+      margin: 0 0 2px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .phase-content p {
+      margin: 0;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Top summary -->
+    <div class="header-meta">
+      <div>
+        <h1>Year Board — Full-Stack Turborepo Architecture Plan</h1>
+        <p>Turborepo monorepo · Cloudflare Pages + Workers + D1 · Better Auth · TanStack Query + fetch · CI/CD</p>
+      </div>
+      <div class="pill-row">
+        <span class="pill"><span class="dot" style="background: var(--c-info);"></span>Turborepo + pnpm</span>
+        <span class="pill"><span class="dot" style="background: var(--c-purple);"></span>Better Auth + D1</span>
+        <span class="pill"><span class="dot" style="background: var(--c-teal);"></span>TanStack Query</span>
+        <span class="pill"><span class="dot" style="background: var(--c-warning);"></span>CF Pages &amp; Workers</span>
+      </div>
+    </div>
+
+    <!-- 1. System Architecture -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="step-num">1</span> System Architecture</h2>
+        <span class="badge">Edge-Native Stack</span>
+      </div>
+      <div class="arch-grid">
+        <div class="arch-node">
+          <div class="kicker" style="color: var(--c-info);">apps/web · CF Pages</div>
+          <h3>React + Vite SPA</h3>
+          <p>Year Board UI, React Router, TanStack Query + native <code>fetch</code>, Error Boundary, 404 &amp; Auth Error pages.</p>
+        </div>
+        <div class="arch-node">
+          <div class="kicker" style="color: var(--c-purple);">apps/api · CF Worker</div>
+          <h3>Hono + Better Auth</h3>
+          <p>REST API for plans, habits, goals &amp; weeks, Better Auth session cookies, CORS, and structured error middleware.</p>
+        </div>
+        <div class="arch-node">
+          <div class="kicker" style="color: var(--c-teal);">Database · CF D1</div>
+          <h3>SQLite + Drizzle ORM</h3>
+          <p>Better Auth tables (<code>user</code>, <code>session</code>, <code>account</code>, <code>verification</code>) + normalized Year Board tables.</p>
+        </div>
+        <div class="arch-node">
+          <div class="kicker" style="color: var(--c-warning);">GitHub Actions</div>
+          <h3>Automated CI/CD</h3>
+          <p>Lint/typecheck → D1 migrations → Cloudflare Pages deploy first → Cloudflare Worker deploy + health check.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Monorepo Structure -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="step-num">2</span> Turborepo Monorepo Structure</h2>
+        <span class="badge">pnpm Workspaces</span>
+      </div>
+      <pre><code>year-board/
+├── turbo.json                    # Turborepo task graph (build, dev, lint, typecheck)
+├── pnpm-workspace.yaml           # apps/*, packages/*
+├── package.json                  # Root scripts (dev, build, lint, db:migrate)
+├── .github/workflows/
+│   ├── ci.yml                    # PR checks: lint, typecheck, build, preview deploy
+│   └── deploy.yml                # Main branch: Pages deploy first → D1 migrate → Worker deploy
+├── packages/
+│   └── shared/                   # Shared TS types, Zod validation schemas, ISO week/date &amp; stats utils
+│       └── src/
+│           ├── types.ts          # Plan, Habit, QuarterGoal, WeekMeta, LabEntry, API responses
+│           ├── schemas.ts        # Zod schemas for request/response validation
+│           ├── dates.ts          # ISO-8601 week math
+│           └── stats.ts          # Streaks &amp; Perfect weeks calculations
+├── apps/
+│   ├── web/                      # Cloudflare Pages (React 19 + Vite + Tailwind v4)
+│   │   ├── public/_redirects     # SPA fallback: /* /index.html 200
+│   │   └── src/
+│   │       ├── lib/
+│   │       │   ├── api.ts        # Typed fetch() client with credentials:'include' + ApiError class
+│   │       │   ├── auth-client.ts# Better Auth React client (signIn, signUp, signOut, useSession)
+│   │       │   └── queries.ts    # TanStack Query hooks + optimistic mutations
+│   │       ├── pages/
+│   │       │   ├── BoardPage.tsx # Year Board (Guest Sample Year + Authenticated D1 sync)
+│   │       │   ├── LoginPage.tsx # Sign in / Sign up with Better Auth error handling
+│   │       │   ├── AuthErrorPage.tsx # Redirect target for Better Auth errors (/auth/error)
+│   │       │   └── NotFoundPage.tsx  # 404 Not Found page (*)
+│   │       └── components/
+│   │           ├── ErrorBoundary.tsx # Global React Error Boundary + retry UI
+│   │           └── ...               # Toolbar, Sidebar, WeeksBoard, DaysBoard, WeekDrawer, Modals
+│   └── api/                      # Cloudflare Worker (Hono + Better Auth + Drizzle D1)
+│       ├── wrangler.toml         # Worker config, D1 binding (DB), env vars
+│       ├── drizzle.config.ts     # Drizzle Kit D1 migration config
+│       ├── drizzle/              # SQL migration files
+│       └── src/
+│           ├── index.ts          # Hono app, CORS, global onError, 404 JSON handler
+│           ├── auth.ts           # Better Auth factory per-request (D1 adapter + error redirect)
+│           ├── db/schema.ts      # Drizzle tables (Auth + Year Board)
+│           └── routes/
+│               ├── board.ts      # GET /api/board (full snapshot), PATCH /api/settings
+│               ├── plans.ts      # CRUD /api/plans
+│               ├── habits.ts     # CRUD /api/habits, POST /api/habits/:id/toggle
+│               ├── labs.ts       # POST /api/labs/entries
+│               ├── goals.ts      # CRUD /api/goals
+│               └── weeks.ts      # PUT /api/weeks/:weekKey (focus &amp; notes)</code></pre>
+    </section>
+
+    <!-- 3. Cloudflare D1 Schema -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="step-num">3</span> Cloudflare D1 Database Schema</h2>
+        <span class="badge">Drizzle ORM · SQLite</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Table</th>
+              <th>Purpose</th>
+              <th>Key Columns &amp; Constraints</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>user</code>, <code>session</code>, <code>account</code>, <code>verification</code></td>
+              <td>Better Auth core tables</td>
+              <td>Managed by Better Auth Drizzle adapter; <code>user.id</code> referenced by all board tables with <code>ON DELETE CASCADE</code>.</td>
+            </tr>
+            <tr>
+              <td><code>plans</code></td>
+              <td>Multi-day &amp; single-day board plans</td>
+              <td><code>id</code>, <code>userId</code>, <code>title</code>, <code>startDate</code>, <code>endDate</code>, <code>category</code>, <code>status</code> (planned|done|missed), <code>notes</code></td>
+            </tr>
+            <tr>
+              <td><code>habits</code></td>
+              <td>User daily/weekly habits</td>
+              <td><code>id</code>, <code>userId</code>, <code>name</code>, <code>color</code>, <code>weeklyTarget</code> (1–7), <code>isLabs</code>, <code>dailyMinutesTarget</code></td>
+            </tr>
+            <tr>
+              <td><code>habit_checkins</code></td>
+              <td>Per-day habit completions</td>
+              <td><code>habitId</code>, <code>userId</code>, <code>dateKey</code> (YYYY-MM-DD) · unique index on <code>(habitId, dateKey)</code></td>
+            </tr>
+            <tr>
+              <td><code>lab_entries</code></td>
+              <td>Focus / Labs logged minutes</td>
+              <td><code>id</code>, <code>userId</code>, <code>dateKey</code>, <code>topic</code>, <code>minutes</code></td>
+            </tr>
+            <tr>
+              <td><code>quarter_goals</code></td>
+              <td>Up to 5 goals per quarter</td>
+              <td><code>id</code>, <code>userId</code>, <code>year</code>, <code>quarter</code> (1–4), <code>title</code>, <code>done</code></td>
+            </tr>
+            <tr>
+              <td><code>week_meta</code></td>
+              <td>Week focus &amp; notes</td>
+              <td><code>userId</code>, <code>weekKey</code> (e.g. 2026-W47), <code>focus</code>, <code>notes</code> · composite PK <code>(userId, weekKey)</code></td>
+            </tr>
+            <tr>
+              <td><code>user_preferences</code></td>
+              <td>Board UI settings</td>
+              <td><code>userId</code> (PK), <code>ownerName</code>, <code>density</code>, <code>view</code>, <code>theme</code>, <code>hiddenCategories</code> (JSON)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. Client Data Fetching & Error Handling -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="step-num">4</span> TanStack Query, Better Auth &amp; Error Handling</h2>
+        <span class="badge">Zero Silent Failures</span>
+      </div>
+      <div class="grid-2">
+        <div class="subcard">
+          <h4><span class="dot" style="background: var(--c-teal);"></span>TanStack Query + Native <code>fetch</code></h4>
+          <ul>
+            <li><strong>Typed fetch wrapper</strong> (<code>apiFetch&lt;T&gt;</code>) with <code>credentials: 'include'</code>, JSON parsing, and typed <code>ApiError(status, code, message)</code>.</li>
+            <li><strong>Query keys</strong>: <code>['board', year]</code>, <code>['session']</code> with smart <code>staleTime</code> and automatic invalidation.</li>
+            <li><strong>Optimistic mutations</strong> for toggling habits, cycling plan status, and editing week focus — rolls back cleanly on network/API failure with error toast.</li>
+            <li><strong>Dual mode</strong>: Guests get instant local Sample Year; signed-in users seamlessly read/write Cloudflare D1.</li>
+          </ul>
+        </div>
+        <div class="subcard">
+          <h4><span class="dot" style="background: var(--c-danger);"></span>Better Auth &amp; Error / 404 Handling</h4>
+          <ul>
+            <li><strong>Better Auth error redirect</strong>: Configured with <code>onAPIError: { errorURL: `${WEB_URL}/auth/error` }</code> so OAuth/callback/session errors redirect cleanly to <code>/auth/error?error=...</code>.</li>
+            <li><strong><code>/auth/error</code> page</strong>: Translates Better Auth error codes (<code>INVALID_CREDENTIALS</code>, <code>SESSION_EXPIRED</code>, <code>STATE_MISMATCH</code>, <code>ACCESS_DENIED</code>, etc.) into clear user messages with Sign-in &amp; Home recovery buttons.</li>
+            <li><strong>404 Not Found page</strong>: Catch-all <code>*</code> route in web app + JSON 404 handler in Hono API + Cloudflare Pages <code>_redirects</code> SPA fallback.</li>
+            <li><strong>Global Error Boundary</strong>: Catches unexpected React render crashes with reset/reload recovery, plus Hono <code>app.onError</code> returning clean JSON without leaking stack traces.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CI/CD Pipeline -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="step-num">5</span> CI/CD Pipeline (Cloudflare Pages First → D1 → Worker)</h2>
+        <span class="badge">GitHub Actions</span>
+      </div>
+      <div class="pipeline">
+        <div class="stage">
+          <div class="stage-label">STAGE 01</div>
+          <div class="stage-title">Verify &amp; Build</div>
+          <p class="stage-desc"><code>pnpm install --frozen-lockfile</code>, <code>turbo lint typecheck build</code> across all apps &amp; packages.</p>
+        </div>
+        <div class="stage">
+          <div class="stage-label">STAGE 02</div>
+          <div class="stage-title">Deploy CF Pages</div>
+          <p class="stage-desc">Build <code>apps/web</code> with <code>VITE_API_URL</code> and deploy to Cloudflare Pages first via <code>cloudflare/wrangler-action</code>.</p>
+        </div>
+        <div class="stage">
+          <div class="stage-label">STAGE 03</div>
+          <div class="stage-title">D1 Migrations</div>
+          <p class="stage-desc">Apply pending SQL migrations to remote D1 via <code>wrangler d1 migrations apply --remote</code>.</p>
+        </div>
+        <div class="stage">
+          <div class="stage-label">STAGE 04</div>
+          <div class="stage-title">Deploy CF Worker</div>
+          <p class="stage-desc">Deploy <code>apps/api</code> Worker and run post-deploy <code>/api/health</code> smoke check (fails workflow if unhealthy).</p>
+        </div>
+      </div>
+      <div style="margin-top: 10px; font-size: 11.5px; color: var(--fg-muted);">
+        <strong>Required GitHub Secrets:</strong>
+        <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code>, <code>BETTER_AUTH_SECRET</code>, <code>VITE_API_URL</code>, <code>WEB_URL</code>.
+      </div>
+    </section>
+
+    <!-- 6. Execution Phases -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title"><span class="step-num">6</span> Implementation Roadmap</h2>
+        <span class="badge">6 Phases</span>
+      </div>
+      <div class="phases">
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(107,149,240,0.18); color: var(--c-info);">Phase 1</span>
+          <div class="phase-content">
+            <h4>Turborepo Monorepo Migration</h4>
+            <p>Convert current workspace into pnpm + Turborepo with <code>apps/web</code>, <code>apps/api</code>, and <code>packages/shared</code>.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(161,131,238,0.18); color: var(--c-purple);">Phase 2</span>
+          <div class="phase-content">
+            <h4>Cloudflare D1 Schema &amp; Better Auth API</h4>
+            <p>Set up Hono Worker, Drizzle D1 schema + SQL migrations, Better Auth routes with error redirect, and global API error/404 handlers.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(53,180,196,0.18); color: var(--c-teal);">Phase 3</span>
+          <div class="phase-content">
+            <h4>Year Board REST Endpoints</h4>
+            <p>Implement authenticated CRUD endpoints for plans, habits, check-ins, lab entries, quarter goals, week meta, and preferences with Zod validation.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(67,181,131,0.18); color: var(--c-success);">Phase 4</span>
+          <div class="phase-content">
+            <h4>Web App: TanStack Query + Fetch + Auth UI</h4>
+            <p>Wire up <code>@tanstack/react-query</code> + native <code>fetch</code> client, optimistic updates, Login/Signup pages, and guest-to-auth flow.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(239,68,68,0.18); color: var(--c-danger);">Phase 5</span>
+          <div class="phase-content">
+            <h4>Error Boundary, Better Auth Error Redirect &amp; 404 Page</h4>
+            <p>Add React Router, <code>/auth/error</code> page, <code>NotFoundPage</code> (404), global <code>ErrorBoundary</code>, and API error toast notifications.</p>
+          </div>
+        </div>
+        <div class="phase-row">
+          <span class="phase-tag" style="background: rgba(212,169,79,0.18); color: var(--c-warning);">Phase 6</span>
+          <div class="phase-content">
+            <h4>Cloudflare Config, GitHub Actions CI/CD &amp; Verification</h4>
+            <p>Add <code>wrangler.toml</code>, Pages <code>_redirects</code>, <code>.github/workflows/ci.yml</code> &amp; <code>deploy.yml</code> (Pages first → D1 → Worker), and verify full monorepo build, typecheck, and lint.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

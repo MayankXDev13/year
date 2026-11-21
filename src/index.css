@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: oklch(0.985 0.002 90);
+  --foreground: oklch(0.16 0 0);
+  --muted-foreground: oklch(0.48 0 0);
+  --surface: oklch(0.96 0.002 90);
+  --card-edge: rgba(24, 24, 27, 0.12);
+  --card-edge-hover: rgba(24, 24, 27, 0.24);
+  --accent-surface: rgba(24, 24, 27, 0.06);
+  --highlight: #d97706;
+
+  --yb-work: #2f62d6;
+  --yb-work-tint: #e7edfb;
+  --yb-work-ink: #1d47ae;
+  --yb-learning: #7c4ddb;
+  --yb-learning-tint: #efe9fb;
+  --yb-learning-ink: #5b33b0;
+  --yb-health: #0e8fa3;
+  --yb-health-tint: #e0f3f6;
+  --yb-health-ink: #0a5c69;
+  --yb-travel: #b98318;
+  --yb-travel-tint: #f8efdb;
+  --yb-travel-ink: #6f4c07;
+  --yb-personal: #cf3c6f;
+  --yb-personal-tint: #fbe7ee;
+  --yb-personal-ink: #a3214f;
+
+  --yb-green: #178a5c;
+  --yb-green-tint: #e3f3ec;
+  --yb-green-ink: #0f6644;
+  --yb-purple: #7c4ddb;
+  --yb-purple-tint: #efe9fb;
+  --yb-purple-ink: #5b33b0;
+  --yb-blue: #2f62d6;
+  --yb-blue-tint: #e7edfb;
+  --yb-blue-ink: #1d47ae;
+  --yb-amber: #b98318;
+  --yb-amber-tint: #f8efdb;
+  --yb-amber-ink: #6f4c07;
+  --yb-pink: #cf3c6f;
+  --yb-pink-tint: #fbe7ee;
+  --yb-pink-ink: #a3214f;
+  --yb-teal: #0e8fa3;
+  --yb-teal-tint: #e0f3f6;
+  --yb-teal-ink: #0a5c69;
+
+  --yb-cell: #0000000b;
+  --yb-cell-weekend: #00000016;
+  --yb-cell-past: #00000008;
+  --yb-cell-future: #00000006;
+  --yb-tile: #ffffffbf;
+  --yb-tile-past: #fafaf98c;
+  --yb-hi: color-mix(in oklch, var(--highlight) 28%, transparent);
+  --yb-ok: #178a5c;
+  --yb-ok-tint: #178a5c14;
+  --yb-ok-ink: #0f6644;
+  --yb-miss: #00000047;
+  --yb-flame: #b45309;
+  --yb-sheet: #ffffff;
+  --yb-on: #ffffff;
+}
+
+.dark {
+  --background: #0c0a09;
+  --foreground: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.64 0 0);
+  --surface: #141210;
+  --card-edge: rgba(255, 247, 237, 0.11);
+  --card-edge-hover: rgba(255, 247, 237, 0.26);
+  --accent-surface: rgba(255, 247, 237, 0.07);
+  --highlight: #ea580c;
+
+  --yb-work: #6b95f0;
+  --yb-work-tint: #6b95f029;
+  --yb-work-ink: #b4c9f7;
+  --yb-learning: #a183ee;
+  --yb-learning-tint: #a183ee29;
+  --yb-learning-ink: #d2c3f7;
+  --yb-health: #35b4c4;
+  --yb-health-tint: #35b4c429;
+  --yb-health-ink: #a0dde5;
+  --yb-travel: #d4a94f;
+  --yb-travel-tint: #d4a94f29;
+  --yb-travel-ink: #ecd6a4;
+  --yb-personal: #e56b97;
+  --yb-personal-tint: #e56b9729;
+  --yb-personal-ink: #f4b5cb;
+
+  --yb-green: #43b583;
+  --yb-green-tint: #43b58329;
+  --yb-green-ink: #9fdfbf;
+  --yb-purple: #a183ee;
+  --yb-purple-tint: #a183ee29;
+  --yb-purple-ink: #d2c3f7;
+  --yb-blue: #6b95f0;
+  --yb-blue-tint: #6b95f029;
+  --yb-blue-ink: #b4c9f7;
+  --yb-amber: #d4a94f;
+  --yb-amber-tint: #d4a94f29;
+  --yb-amber-ink: #ecd6a4;
+  --yb-pink: #e56b97;
+  --yb-pink-tint: #e56b9729;
+  --yb-pink-ink: #f4b5cb;
+  --yb-teal: #35b4c4;
+  --yb-teal-tint: #35b4c429;
+  --yb-teal-ink: #a0dde5;
+
+  --yb-cell: #ffffff0e;
+  --yb-cell-weekend: #ffffff18;
+  --yb-cell-past: #ffffff09;
+  --yb-cell-future: #ffffff08;
+  --yb-tile: #0000002e;
+  --yb-tile-past: #ffffff04;
+  --yb-ok: #43b583;
+  --yb-ok-tint: #43b58316;
+  --yb-ok-ink: #9fdfbf;
+  --yb-miss: #ffffff4d;
+  --yb-flame: #fcd9a8;
+  --yb-sheet: oklch(18% 0 0);
+  --yb-on: oklch(16% 0 0);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-montserrat {
+  font-family: 'Montserrat', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-mono-num {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.yb-backdrop {
+  background-image: radial-gradient(
+    ellipse 60% 340px at 50% -40px,
+    rgba(234, 88, 12, 0.14),
+    transparent 75%
+  );
+}
+
+:root:not(.dark) .yb-backdrop {
+  background-image: radial-gradient(
+    ellipse 60% 300px at 50% -40px,
+    rgba(217, 119, 6, 0.08),
+    transparent 75%
+  );
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--card-edge-hover);
+  border-radius: 9999px;
+}

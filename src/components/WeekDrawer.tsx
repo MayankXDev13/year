@@ -1,0 +1,449 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  FlaskConical,
+  Pencil,
+  Plus,
+  X,
+} from 'lucide-react'
+import {
+  getCategoryMeta,
+  getHabitColorMeta,
+  type Habit,
+  type LabEntry,
+  type Plan,
+  type PlanStatus,
+  type WeekMeta,
+  type YearBoardData,
+} from '../types/yearBoard'
+import {
+  DAY_INITIAL,
+  DAY_SHORT,
+  formatMinutes,
+  formatShortRange,
+  parseDateKey,
+  type ISOWeekInfo,
+} from '../utils/dates'
+import { getHabitWeekCount, isHabitDoneOnDate } from '../utils/stats'
+
+interface WeekDrawerProps {
+  week: ISOWeekInfo | null
+  todayKey: string
+  currentWeekKey: string
+  habits: Habit[]
+  habitCheckins: YearBoardData['habitCheckins']
+  labEntries: LabEntry[]
+  plans: Plan[]
+  weekMeta: WeekMeta
+  onClose: () => void
+  onNavigateWeek: (delta: -1 | 1) => void
+  onUpdateWeekMeta: (weekKey: string, patch: Partial<WeekMeta>) => void
+  onToggleHabitOnDate: (habitId: string, dateKey: string) => void
+  onAddLabEntry: (dateKey: string, topic: string, minutes: number) => void
+  onOpenNewPlan: (startDate: string, endDate: string) => void
+  onOpenEditPlan: (plan: Plan) => void
+  onCyclePlanStatus: (planId: string) => void
+}
+
+const STATUS_BADGE: Record<PlanStatus, { label: string; className: string }> = {
+  planned: {
+    label: 'Planned',
+    className: 'border-[var(--card-edge-hover)] text-[var(--muted-foreground)]',
+  },
+  done: {
+    label: 'Happened',
+    className: 'border-[var(--yb-ok)]/50 bg-[var(--yb-ok-tint)] text-[var(--yb-ok-ink)]',
+  },
+  missed: {
+    label: 'Missed',
+    className: 'border-red-500/40 bg-red-500/10 text-red-400',
+  },
+}
+
+export function WeekDrawer({
+  week,
+  todayKey,
+  currentWeekKey,
+  habits,
+  habitCheckins,
+  labEntries,
+  plans,
+  weekMeta,
+  onClose,
+  onNavigateWeek,
+  onUpdateWeekMeta,
+  onToggleHabitOnDate,
+  onAddLabEntry,
+  onOpenNewPlan,
+  onOpenEditPlan,
+  onCyclePlanStatus,
+}: WeekDrawerProps) {
+  const [labTopic, setLabTopic] = useState('Deep Focus')
+
+  useEffect(() => {
+    if (!week) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [week, onClose])
+
+  const weekLabBreakdown = useMemo(() => {
+    if (!week) return { total: 0, topics: [] as { topic: string; minutes: number }[] }
+    const daySet = new Set(week.days)
+    const byTopic = new Map<string, number>()
+    let total = 0
+    for (const entry of labEntries) {
+      if (!daySet.has(entry.date)) continue
+      total += entry.minutes
+      byTopic.set(entry.topic, (byTopic.get(entry.topic) ?? 0) + entry.minutes)
+    }
+    const topics = [...byTopic.entries()]
+      .map(([topic, minutes]) => ({ topic, minutes }))
+      .sort((a, b) => b.minutes - a.minutes)
+    return { total, topics }
+  }, [week, labEntries])
+
+  if (!week) return null
+
+  const isThisWeek = week.weekKey === currentWeekKey
+  const isPastWeek = week.endKey < todayKey
+  const weekTag = isThisWeek ? 'this week' : isPastWeek ? 'past' : 'upcoming'
+
+  const logDateKey = week.days.includes(todayKey) ? todayKey : week.days[0]
+
+  return (
+    <div className="fixed inset-0 z-40 flex">
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity"
+      />
+
+      {/* Left slide-over sheet */}
+      <aside
+        role="dialog"
+        aria-label={`Week ${week.weekNumber} details`}
+        className="relative z-10 flex h-full w-full max-w-[390px] flex-col border-r border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] shadow-2xl"
+      >
+        {/* Drawer header */}
+        <div className="flex items-start justify-between border-b border-[var(--card-edge)] px-5 py-4">
+          <div>
+            <div className="text-xs font-medium text-[var(--muted-foreground)]">
+              Week {week.weekNumber} · {weekTag}
+            </div>
+            <h2 className="font-montserrat mt-0.5 text-xl font-bold text-[var(--foreground)]">
+              {week.dateRangeLabel}, {week.year}
+            </h2>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Previous week"
+              onClick={() => onNavigateWeek(-1)}
+              className="grid size-8 cursor-pointer place-items-center rounded-lg border border-[var(--card-edge)] text-[var(--muted-foreground)] hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next week"
+              onClick={() => onNavigateWeek(1)}
+              className="grid size-8 cursor-pointer place-items-center rounded-lg border border-[var(--card-edge)] text-[var(--muted-foreground)] hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Close week drawer"
+              onClick={onClose}
+              className="grid size-8 cursor-pointer place-items-center rounded-lg border border-[var(--card-edge)] text-[var(--muted-foreground)] hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {/* Week focus */}
+          <div>
+            <label
+              htmlFor="week-focus-input"
+              className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]"
+            >
+              Week focus · shows on the board
+            </label>
+            <input
+              id="week-focus-input"
+              type="text"
+              value={weekMeta.focus}
+              onChange={(e) => onUpdateWeekMeta(week.weekKey, { focus: e.target.value })}
+              placeholder="Give this week a focus..."
+              className="h-10 w-full rounded-lg border border-[var(--card-edge-hover)] bg-[var(--background)] px-3 text-sm font-medium text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--muted-foreground)]/60 focus:border-[var(--foreground)]"
+            />
+          </div>
+
+          {/* Habits this week grid */}
+          {habits.length > 0 && (
+            <div className="mt-5">
+              <div className="mb-2 text-xs font-medium text-[var(--muted-foreground)]">
+                Habits this week
+              </div>
+              <div className="grid grid-cols-[1fr_repeat(7,28px)_36px] items-center gap-1">
+                <div />
+                {DAY_INITIAL.map((d, i) => (
+                  <div
+                    key={i}
+                    className="text-center text-[11px] font-medium text-[var(--muted-foreground)]"
+                  >
+                    {d}
+                  </div>
+                ))}
+                <div />
+
+                {habits.map((habit) => {
+                  const meta = getHabitColorMeta(habit.color)
+                  const count = getHabitWeekCount(habit, week, habitCheckins, labEntries)
+                  return (
+                    <div key={habit.id} className="contents">
+                      <div className="flex items-center gap-1.5 truncate pr-2 text-xs font-medium text-[var(--foreground)]">
+                        {habit.isLabs && <FlaskConical className="size-3 shrink-0 opacity-70" />}
+                        <span className="truncate">{habit.name}</span>
+                      </div>
+
+                      {week.days.map((dayKey) => {
+                        const done = isHabitDoneOnDate(habit, dayKey, habitCheckins, labEntries)
+                        const isToday = dayKey === todayKey
+                        const isFuture = dayKey > todayKey
+                        return (
+                          <button
+                            key={dayKey}
+                            type="button"
+                            aria-pressed={done}
+                            aria-label={`${habit.name} on ${dayKey}`}
+                            onClick={() => onToggleHabitOnDate(habit.id, dayKey)}
+                            style={{
+                              background: done ? meta.colorVar : 'transparent',
+                              color: done ? 'var(--yb-on)' : 'transparent',
+                              borderColor: isToday
+                                ? 'var(--foreground)'
+                                : done
+                                  ? meta.colorVar
+                                  : 'var(--card-edge-hover)',
+                            }}
+                            className={`grid size-7 cursor-pointer place-items-center rounded-md border transition-transform active:scale-95 ${
+                              isFuture && !done ? 'border-dashed opacity-45' : ''
+                            } ${isToday ? 'ring-1 ring-[var(--foreground)]' : ''}`}
+                          >
+                            {done && <Check className="size-3.5 stroke-[3]" />}
+                          </button>
+                        )
+                      })}
+
+                      <div className="font-mono-num text-right text-xs text-[var(--muted-foreground)]">
+                        {count}/{habit.weeklyTarget}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Labs / Focus time this week */}
+          <div className="mt-5">
+            <div className="mb-2 text-xs font-medium text-[var(--muted-foreground)]">
+              Labs this week
+            </div>
+            <div className="rounded-xl border border-[var(--card-edge)] bg-[var(--background)]/60 p-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                  <FlaskConical className="size-4" style={{ color: 'var(--yb-teal)' }} />
+                  <span>{formatMinutes(weekLabBreakdown.total)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {[15, 30].map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => onAddLabEntry(logDateKey, labTopic.trim() || 'Labs', mins)}
+                      className="cursor-pointer rounded-md border border-[var(--card-edge-hover)] px-2 py-0.5 text-[11px] font-medium text-[var(--foreground)] hover:bg-[var(--accent-surface)]"
+                    >
+                      +{mins}m
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {weekLabBreakdown.topics.length > 0 && (
+                <div className="mt-2.5 flex flex-col gap-1 border-t border-[var(--card-edge)] pt-2">
+                  {weekLabBreakdown.topics.map((item) => (
+                    <div
+                      key={item.topic}
+                      className="flex items-center justify-between text-xs text-[var(--muted-foreground)]"
+                    >
+                      <span className="truncate">{item.topic}</span>
+                      <span className="font-mono-num shrink-0">{formatMinutes(item.minutes)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--card-edge)] pt-2.5">
+                <input
+                  type="text"
+                  value={labTopic}
+                  onChange={(e) => setLabTopic(e.target.value)}
+                  placeholder="Lab / session name"
+                  className="h-7 min-w-0 flex-1 rounded-md border border-[var(--card-edge)] bg-[var(--surface)] px-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--card-edge-hover)]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Daily plans list Mon..Sun */}
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-[var(--muted-foreground)]">
+                Plans this week
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenNewPlan(week.startKey, week.startKey)}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--accent-surface)]"
+              >
+                <Plus className="size-3.5" />
+                Add plan
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {week.days.map((dayKey, idx) => {
+                const d = parseDateKey(dayKey)
+                const isToday = dayKey === todayKey
+                const dayPlans = plans.filter((p) => p.startDate <= dayKey && p.endDate >= dayKey)
+
+                return (
+                  <div
+                    key={dayKey}
+                    className={`flex items-start gap-3 rounded-xl border p-2.5 transition-colors ${
+                      isToday
+                        ? 'border-[var(--foreground)]/50 bg-[var(--accent-surface)]'
+                        : 'border-[var(--card-edge)] bg-[var(--background)]/40'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      title={`Add plan on ${dayKey}`}
+                      onClick={() => onOpenNewPlan(dayKey, dayKey)}
+                      className="flex w-10 shrink-0 cursor-pointer flex-col items-center rounded-lg bg-[var(--surface)] py-1 text-center hover:bg-[var(--accent-surface)]"
+                    >
+                      <span className="text-[10px] font-medium text-[var(--muted-foreground)]">
+                        {DAY_SHORT[idx]}
+                      </span>
+                      <span className="font-montserrat text-sm font-bold text-[var(--foreground)]">
+                        {d.getDate()}
+                      </span>
+                    </button>
+
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      {dayPlans.length === 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenNewPlan(dayKey, dayKey)}
+                          className="cursor-pointer text-xs text-[var(--muted-foreground)]/70 hover:text-[var(--foreground)]"
+                        >
+                          Nothing planned
+                        </button>
+                      ) : (
+                        <div className="flex flex-col gap-1.5">
+                          {dayPlans.map((plan) => {
+                            const cat = getCategoryMeta(plan.category)
+                            const badge = STATUS_BADGE[plan.status]
+                            return (
+                              <div
+                                key={plan.id}
+                                style={{
+                                  background: cat.tintVar,
+                                  borderColor:
+                                    plan.status === 'missed' ? cat.colorVar : 'transparent',
+                                }}
+                                className="flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className="size-2 shrink-0 rounded-full"
+                                      style={{ background: cat.colorVar }}
+                                    />
+                                    <span
+                                      className={`truncate text-xs font-semibold ${
+                                        plan.status === 'missed'
+                                          ? 'text-[var(--muted-foreground)] line-through'
+                                          : 'text-[var(--foreground)]'
+                                      }`}
+                                    >
+                                      {plan.title}
+                                    </span>
+                                  </div>
+                                  <div className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">
+                                    {formatShortRange(plan.startDate, plan.endDate)} · {cat.label}
+                                  </div>
+                                </div>
+
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <button
+                                    type="button"
+                                    title="Cycle status: Planned → Happened → Missed"
+                                    onClick={() => onCyclePlanStatus(plan.id)}
+                                    className={`cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${badge.className}`}
+                                  >
+                                    {badge.label}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label={`Edit ${plan.title}`}
+                                    onClick={() => onOpenEditPlan(plan)}
+                                    className="grid size-6 cursor-pointer place-items-center rounded text-[var(--muted-foreground)] hover:bg-black/15 hover:text-[var(--foreground)] dark:hover:bg-white/10"
+                                  >
+                                    <Pencil className="size-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Week notes */}
+          <div className="mt-5 pb-4">
+            <label
+              htmlFor="week-notes-input"
+              className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]"
+            >
+              Notes
+            </label>
+            <textarea
+              id="week-notes-input"
+              rows={3}
+              value={weekMeta.notes}
+              onChange={(e) => onUpdateWeekMeta(week.weekKey, { notes: e.target.value })}
+              placeholder="Reflections, wins, or reminders for this week..."
+              className="w-full resize-none rounded-lg border border-[var(--card-edge-hover)] bg-[var(--background)] p-3 text-xs leading-relaxed text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]/60 focus:border-[var(--foreground)]"
+            />
+          </div>
+        </div>
+      </aside>
+    </div>
+  )
+}
