@@ -1,0 +1,14 @@
+name = "year-board-api"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "year-board-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "drizzle"
+
+[vars]
+BETTER_AUTH_URL = "https://year-board-api.workers.dev"
+WEB_URL = "https://year-board-web.pages.dev"
