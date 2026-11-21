@@ -24,9 +24,9 @@ import { Sidebar } from '../components/Sidebar'
 import { Toolbar } from '../components/Toolbar'
 import { WeekDrawer } from '../components/WeekDrawer'
 import { WeeksBoard } from '../components/WeeksBoard'
-import { useSession, useSignOut } from '../lib/auth-client'
+import { useSession } from '../lib/auth-client'
 import { useBoardMutations, useBoardQuery } from '../lib/queries'
-import { createEmptyYearBoardData, createSampleYearBoardData } from '../utils/sampleData'
+import { createSampleYearBoardData } from '../utils/sampleData'
 
 const STORAGE_KEY = 'year-board-data-v1'
 
@@ -39,6 +39,7 @@ function loadLocalData(): YearBoardData {
         return {
           ...createSampleYearBoardData(),
           ...parsed,
+          habits: parsed.habits.filter((h) => !h.isLabs),
         }
       }
     }
@@ -58,7 +59,6 @@ export function BoardPage() {
   const currentIso = useMemo(() => getISOWeekInfoForDate(todayKey), [todayKey])
 
   const { data: sessionData, isPending: sessionPending } = useSession()
-  const signOutUser = useSignOut()
   const authUser = sessionData?.user ?? null
   const isAuthenticated = Boolean(authUser)
 
@@ -92,7 +92,6 @@ export function BoardPage() {
   const suppressNextClickRef = useRef(false)
   const weekMetaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Persist guest local data
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(localData))
@@ -101,7 +100,6 @@ export function BoardPage() {
     }
   }, [localData])
 
-  // Sync dark/light class on <html>
   useEffect(() => {
     const root = document.documentElement
     if (data.theme === 'dark') {
@@ -111,7 +109,6 @@ export function BoardPage() {
     }
   }, [data.theme])
 
-  // Global mouseup finishes drag-to-create plan
   useEffect(() => {
     if (!dragRange) return
     const handleMouseUp = () => {
@@ -161,8 +158,6 @@ export function BoardPage() {
     [data.habits, activeHabitOverlayId],
   )
 
-  const labsHabit = useMemo(() => data.habits.find((h) => h.isLabs), [data.habits])
-
   const openWeekObj = useMemo(() => {
     if (!openWeekKey) return null
     const inSelected = weeks.find((w) => w.weekKey === openWeekKey)
@@ -172,7 +167,6 @@ export function BoardPage() {
     return getISOWeeksForYear(Number(match[1])).find((w) => w.weekKey === openWeekKey) ?? null
   }, [openWeekKey, weeks])
 
-  // Handlers
   const handleDayMouseDown = useCallback((dateKey: string) => {
     dragDidMoveRef.current = false
     setDragRange({ start: dateKey, end: dateKey })
@@ -223,56 +217,30 @@ export function BoardPage() {
 
   const handleToggleHabitOnDate = useCallback(
     (habitId: string, dateKey: string) => {
-      if (isAuthenticated) {
-        mutations.toggleHabitCheckin.mutate({ habitId, dateKey })
+      // Strictly disallow future dates
+      if (dateKey > todayKey) {
+        setToastError('You can only update today or past days, not future dates.')
         return
       }
+
+      if (isAuthenticated) {
+        mutations.toggleHabitCheckin.mutate({ habitId, dateKey, todayKey })
+        return
+      }
+
       setLocalData((prev) => {
-        const habit = prev.habits.find((h) => h.id === habitId)
         const currentMap = prev.habitCheckins[habitId] ?? {}
         const currentlyDone = !!currentMap[dateKey]
-
-        let nextLabEntries = prev.labEntries
-        if (habit?.isLabs) {
-          const target = habit.dailyMinutesTarget ?? 20
-          const dayTotal = prev.labEntries
-            .filter((e) => e.date === dateKey)
-            .reduce((s, e) => s + e.minutes, 0)
-          if (!currentlyDone && dayTotal < target) {
-            nextLabEntries = [
-              ...prev.labEntries,
-              { id: uid('lab'), date: dateKey, topic: 'Labs', minutes: target - dayTotal },
-            ]
-          } else if (currentlyDone || dayTotal >= target) {
-            nextLabEntries = prev.labEntries.filter((e) => e.date !== dateKey)
-          }
-        }
-
         const nextMap = { ...currentMap }
         if (currentlyDone) delete nextMap[dateKey]
         else nextMap[dateKey] = true
         return {
           ...prev,
           habitCheckins: { ...prev.habitCheckins, [habitId]: nextMap },
-          labEntries: nextLabEntries,
         }
       })
     },
-    [isAuthenticated, mutations.toggleHabitCheckin],
-  )
-
-  const handleAddLabEntry = useCallback(
-    (dateKey: string, topic: string, minutes: number) => {
-      if (isAuthenticated) {
-        mutations.addLabEntry.mutate({ date: dateKey, topic, minutes })
-        return
-      }
-      setLocalData((prev) => ({
-        ...prev,
-        labEntries: [...prev.labEntries, { id: uid('lab'), date: dateKey, topic, minutes }],
-      }))
-    },
-    [isAuthenticated, mutations.addLabEntry],
+    [todayKey, isAuthenticated, mutations.toggleHabitCheckin],
   )
 
   const handleSavePlan = useCallback(
@@ -353,6 +321,20 @@ export function BoardPage() {
       })
     },
     [isAuthenticated, mutations.saveHabit],
+  )
+
+  const handleToggleArchiveHabit = useCallback(
+    (habitId: string, archived: boolean) => {
+      if (isAuthenticated) {
+        mutations.toggleArchiveHabit.mutate({ habitId, archived })
+        return
+      }
+      setLocalData((prev) => ({
+        ...prev,
+        habits: prev.habits.map((h) => (h.id === habitId ? { ...h, archived } : h)),
+      }))
+    },
+    [isAuthenticated, mutations.toggleArchiveHabit],
   )
 
   const handleDeleteHabit = useCallback(
@@ -463,14 +445,6 @@ export function BoardPage() {
     [isAuthenticated, mutations.updatePreferences],
   )
 
-  const handleSignOut = useCallback(async () => {
-    try {
-      await signOutUser()
-    } catch (err) {
-      setToastError(err instanceof Error ? err.message : 'Sign out failed')
-    }
-  }, [signOutUser])
-
   const queryErrorMessage = boardQuery.isError
     ? boardQuery.error instanceof Error
       ? boardQuery.error.message
@@ -485,7 +459,7 @@ export function BoardPage() {
           <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 text-xs">
             <span className="text-[var(--muted-foreground)]">
               <strong className="text-[var(--foreground)]">Sample Year.</strong> Sign in with
-              GitHub or Google to sync your plans, habits, and quarter goals to Cloudflare D1.
+              GitHub or Google to sync your plans, habits, and quarter goals across devices.
             </span>
             <Link
               to="/login"
@@ -507,38 +481,11 @@ export function BoardPage() {
         onViewChange={(view: BoardView) => handleUpdatePref({ view })}
         density={data.density}
         onDensityChange={(density: BoardDensity) => handleUpdatePref({ density })}
-        labsTargetMinutes={labsHabit?.dailyMinutesTarget ?? 20}
-        onLabsTargetChange={(minutes) => {
-          if (labsHabit) {
-            handleSaveHabit({ ...labsHabit, dailyMinutesTarget: minutes }, labsHabit.id)
-          }
-        }}
-        theme={data.theme}
-        onToggleTheme={() =>
-          handleUpdatePref({ theme: data.theme === 'dark' ? 'light' : 'dark' })
-        }
         onOpenShare={(scope) => setShareScope(scope)}
-        onResetSample={() => {
-          setActiveHabitOverlayId(null)
-          setOpenWeekKey(null)
-          setLocalData(createSampleYearBoardData())
-        }}
-        onClearAll={() => {
-          setActiveHabitOverlayId(null)
-          setOpenWeekKey(null)
-          if (isAuthenticated) {
-            mutations.resetBoard.mutate()
-          } else {
-            setLocalData((prev) => ({ ...createEmptyYearBoardData(), theme: prev.theme }))
-          }
-        }}
         currentWeekInfo={currentWeekInfo}
         currentMonthIndex={todayDate.getMonth()}
-        user={authUser}
-        onSignOut={handleSignOut}
       />
 
-      {/* API / Mutation Error Banner */}
       {(toastError || queryErrorMessage) && (
         <div className="mx-auto max-w-[1440px] px-4 pt-3 sm:px-6">
           <div
@@ -584,7 +531,7 @@ export function BoardPage() {
               setActiveHabitOverlayId((cur) => (cur === id ? null : id))
             }
             onToggleHabitToday={(id) => handleToggleHabitOnDate(id, todayKey)}
-            onQuickLogLabs={(mins) => handleAddLabEntry(todayKey, 'Labs', mins)}
+            onToggleArchiveHabit={handleToggleArchiveHabit}
             onOpenAddHabit={() => setHabitModal({ open: true, habit: null })}
             onOpenEditHabit={(habit) => setHabitModal({ open: true, habit })}
             perfectWeeks={{ total: perfectWeeks.total, bestRun: perfectWeeks.bestRun }}
@@ -666,7 +613,6 @@ export function BoardPage() {
         onNavigateWeek={handleNavigateWeek}
         onUpdateWeekMeta={handleUpdateWeekMeta}
         onToggleHabitOnDate={handleToggleHabitOnDate}
-        onAddLabEntry={handleAddLabEntry}
         onOpenNewPlan={(startDate, endDate) =>
           setPlanModal({ open: true, plan: null, range: { startDate, endDate } })
         }
@@ -693,6 +639,7 @@ export function BoardPage() {
           initialHabit={habitModal.habit}
           onClose={() => setHabitModal({ open: false, habit: null })}
           onSave={handleSaveHabit}
+          onToggleArchive={handleToggleArchiveHabit}
           onDelete={handleDeleteHabit}
         />
       )}

@@ -4,16 +4,9 @@ import {
   ChevronLeft,
   ChevronRight,
   HelpCircle,
-  LogIn,
-  LogOut,
-  Moon,
-  RotateCcw,
   Share,
   SlidersHorizontal,
-  Sun,
-  Trash2,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import {
   MONTH_ABBR,
   MONTH_NAMES,
@@ -32,17 +25,9 @@ interface ToolbarProps {
   onViewChange: (view: BoardView) => void
   density: BoardDensity
   onDensityChange: (density: BoardDensity) => void
-  labsTargetMinutes: number
-  onLabsTargetChange: (minutes: number) => void
-  theme: 'dark' | 'light'
-  onToggleTheme: () => void
   onOpenShare: (scope: ShareScope) => void
-  onResetSample: () => void
-  onClearAll: () => void
   currentWeekInfo: ISOWeekInfo | undefined
   currentMonthIndex: number
-  user: { name: string; email: string; image?: string | null } | null
-  onSignOut: () => void
 }
 
 export function Toolbar({
@@ -54,17 +39,9 @@ export function Toolbar({
   onViewChange,
   density,
   onDensityChange,
-  labsTargetMinutes,
-  onLabsTargetChange,
-  theme,
-  onToggleTheme,
   onOpenShare,
-  onResetSample,
-  onClearAll,
   currentWeekInfo,
   currentMonthIndex,
-  user,
-  onSignOut,
 }: ToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
@@ -99,10 +76,10 @@ export function Toolbar({
   const monthName = MONTH_NAMES[currentMonthIndex]
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--card-edge)] bg-[var(--background)]/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+    <div className="border-b border-[var(--card-edge)] bg-[var(--background)]/75 backdrop-blur-md">
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         {/* Left: Year switcher + This week */}
-        <div className="flex items-center gap-2.5">
+        <div data-tour="year-nav" className="flex items-center gap-2.5">
           <div className="inline-flex h-10 items-center rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] px-1">
             <button
               type="button"
@@ -134,7 +111,7 @@ export function Toolbar({
           </button>
         </div>
 
-        {/* Right: How it works, Weeks/Days, Settings, Share, Theme */}
+        {/* Right: How it works, Weeks/Days, Settings, Share */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -147,6 +124,7 @@ export function Toolbar({
 
           {/* Weeks / Days segmented control */}
           <div
+            data-tour="view-toggle"
             role="group"
             aria-label="Board view"
             className="inline-flex h-10 items-center rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] p-1"
@@ -177,7 +155,7 @@ export function Toolbar({
             </button>
           </div>
 
-          {/* Board settings popover */}
+          {/* Board settings popover (Density only) */}
           <div className="relative" ref={settingsRef}>
             <button
               type="button"
@@ -195,80 +173,29 @@ export function Toolbar({
             {settingsOpen && (
               <div
                 role="menu"
-                className="absolute right-0 mt-2 w-64 rounded-xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-3.5 shadow-2xl"
+                className="absolute right-0 z-40 mt-2 w-56 rounded-xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-3.5 shadow-2xl"
               >
-                <div className="mb-3">
-                  <div className="mb-1.5 text-xs font-medium text-[var(--muted-foreground)]">
-                    Density
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] p-1">
-                    {(['comfortable', 'compact'] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => onDensityChange(d)}
-                        className={`h-8 cursor-pointer rounded-md text-xs font-medium capitalize transition-colors ${
-                          density === d
-                            ? 'bg-[var(--foreground)] text-[var(--background)]'
-                            : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                        }`}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
+                <div className="mb-1.5 text-xs font-medium text-[var(--muted-foreground)]">
+                  Density
                 </div>
-
-                <div className="mb-3 border-t border-[var(--card-edge)] pt-3">
-                  <div className="mb-1.5 flex items-center justify-between text-xs">
-                    <span className="font-medium text-[var(--muted-foreground)]">
-                      Labs daily target
-                    </span>
-                    <span className="font-mono-num font-semibold text-[var(--foreground)]">
-                      {labsTargetMinutes} min
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {[15, 20, 30, 45, 60].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => onLabsTargetChange(m)}
-                        className={`h-7 flex-1 cursor-pointer rounded-md text-xs font-medium transition-colors ${
-                          labsTargetMinutes === m
-                            ? 'bg-[var(--yb-teal)] text-[var(--yb-on)]'
-                            : 'border border-[var(--card-edge)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1 border-t border-[var(--card-edge)] pt-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onResetSample()
-                      setSettingsOpen(false)
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--accent-surface)]"
-                  >
-                    <RotateCcw className="size-3.5 text-[var(--muted-foreground)]" />
-                    Load sample year
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClearAll()
-                      setSettingsOpen(false)
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10"
-                  >
-                    <Trash2 className="size-3.5" />
-                    Start blank year
-                  </button>
+                <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] p-1">
+                  {(['comfortable', 'compact'] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        onDensityChange(d)
+                        setSettingsOpen(false)
+                      }}
+                      className={`h-8 cursor-pointer rounded-md text-xs font-medium capitalize transition-colors ${
+                        density === d
+                          ? 'bg-[var(--foreground)] text-[var(--background)]'
+                          : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -278,6 +205,7 @@ export function Toolbar({
           <div className="relative" ref={shareRef}>
             <button
               type="button"
+              data-tour="share-btn"
               aria-expanded={shareOpen}
               onClick={() => {
                 setShareOpen((o) => !o)
@@ -293,7 +221,7 @@ export function Toolbar({
             {shareOpen && (
               <div
                 role="menu"
-                className="absolute right-0 mt-2 w-72 rounded-xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-1.5 shadow-2xl"
+                className="absolute right-0 z-40 mt-2 w-72 rounded-xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-1.5 shadow-2xl"
               >
                 <button
                   type="button"
@@ -360,56 +288,8 @@ export function Toolbar({
               </div>
             )}
           </div>
-
-          {/* Theme toggle */}
-          <button
-            type="button"
-            aria-label="Toggle theme"
-            title="Toggle theme"
-            onClick={onToggleTheme}
-            className="grid size-10 cursor-pointer place-items-center rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
-          >
-            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </button>
-
-          {/* Auth control (GitHub / Google OAuth) */}
-          {user ? (
-            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] py-1 pr-1.5 pl-2">
-              {user.image ? (
-                <img
-                  src={user.image}
-                  alt={user.name}
-                  className="size-6 rounded-full object-cover"
-                />
-              ) : (
-                <span className="grid size-6 place-items-center rounded-full bg-[#ea580c]/25 text-[11px] font-bold text-[var(--foreground)]">
-                  {user.name.slice(0, 1).toUpperCase()}
-                </span>
-              )}
-              <span className="hidden max-w-[90px] truncate text-xs font-medium text-[var(--foreground)] md:inline">
-                {user.name.split(' ')[0]}
-              </span>
-              <button
-                type="button"
-                title="Sign out"
-                aria-label="Sign out"
-                onClick={onSignOut}
-                className="grid size-7 cursor-pointer place-items-center rounded-md text-[var(--muted-foreground)] hover:bg-[var(--accent-surface)] hover:text-[var(--foreground)]"
-              >
-                <LogOut className="size-3.5" />
-              </button>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[var(--card-edge-hover)] bg-[var(--surface)] px-3 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--accent-surface)]"
-            >
-              <LogIn className="size-4" />
-              <span>Sign in</span>
-            </Link>
-          )}
         </div>
       </div>
-    </header>
+    </div>
   )
 }

@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import {
+  Archive,
+  ArchiveRestore,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
   Flame,
-  FlaskConical,
   MoreHorizontal,
   Plus,
   X,
@@ -18,7 +20,6 @@ import {
   getHabitColorMeta,
   getHabitStreak,
   getHabitWeekCount,
-  getLabMinutesForDate,
   isHabitDoneOnDate,
   parseDateKey,
   type CategoryId,
@@ -41,7 +42,7 @@ interface SidebarProps {
   activeHabitOverlayId: string | null
   onToggleHabitOverlay: (habitId: string) => void
   onToggleHabitToday: (habitId: string) => void
-  onQuickLogLabs: (minutes: number) => void
+  onToggleArchiveHabit: (habitId: string, archived: boolean) => void
   onOpenAddHabit: () => void
   onOpenEditHabit: (habit: Habit) => void
   perfectWeeks: { total: number; bestRun: number }
@@ -65,7 +66,7 @@ export function Sidebar({
   activeHabitOverlayId,
   onToggleHabitOverlay,
   onToggleHabitToday,
-  onQuickLogLabs,
+  onToggleArchiveHabit,
   onOpenAddHabit,
   onOpenEditHabit,
   perfectWeeks,
@@ -78,6 +79,10 @@ export function Sidebar({
 }: SidebarProps) {
   const [addingQuarter, setAddingQuarter] = useState<1 | 2 | 3 | 4 | null>(null)
   const [newGoalTitle, setNewGoalTitle] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
+
+  const activeHabits = habits.filter((h) => !h.archived)
+  const archivedHabits = habits.filter((h) => h.archived)
 
   const todayDate = parseDateKey(todayKey)
   const todayYear = todayDate.getFullYear()
@@ -94,7 +99,7 @@ export function Sidebar({
         >
           <ChevronRight className="size-4" />
         </button>
-        {habits.map((habit) => {
+        {activeHabits.map((habit) => {
           const doneToday = isHabitDoneOnDate(habit, todayKey, habitCheckins, labEntries)
           const meta = getHabitColorMeta(habit.color)
           return (
@@ -102,20 +107,14 @@ export function Sidebar({
               key={habit.id}
               type="button"
               title={`${habit.name} — click to toggle today`}
-              onClick={() =>
-                habit.isLabs ? onQuickLogLabs(habit.dailyMinutesTarget ?? 20) : onToggleHabitToday(habit.id)
-              }
+              onClick={() => onToggleHabitToday(habit.id)}
               style={{
                 background: doneToday ? meta.colorVar : meta.tintVar,
                 color: doneToday ? 'var(--yb-on)' : meta.inkVar,
               }}
               className="grid size-9 cursor-pointer place-items-center rounded-full transition-transform hover:scale-105"
             >
-              {habit.isLabs ? (
-                <FlaskConical className="size-4" />
-              ) : (
-                <Check className="size-4 stroke-[2.5]" />
-              )}
+              <Check className="size-4 stroke-[2.5]" />
             </button>
           )
         })}
@@ -126,160 +125,248 @@ export function Sidebar({
   return (
     <aside className="w-full shrink-0 border-b border-[var(--card-edge)] p-4 lg:w-[276px] lg:border-r lg:border-b-0 lg:px-5 lg:py-4">
       {/* Habits header */}
-      <div className="mb-3 flex items-start justify-between">
-        <div>
-          <div className="text-xs font-medium text-[var(--muted-foreground)]">Habits · today</div>
-          <div className="font-montserrat text-base font-semibold text-[var(--foreground)]">
-            {formatPrettyDay(todayKey)}
+      <div data-tour="habits-section">
+        <div className="mb-3 flex items-start justify-between">
+          <div>
+            <div className="text-xs font-medium text-[var(--muted-foreground)]">Habits · today</div>
+            <div className="font-montserrat text-base font-semibold text-[var(--foreground)]">
+              {formatPrettyDay(todayKey)}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="Add habit"
+              title="Add habit"
+              onClick={onOpenAddHabit}
+              className="grid size-7 cursor-pointer place-items-center rounded-md border border-[var(--card-edge)] bg-[var(--surface)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
+            >
+              <Plus className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+              onClick={onToggleCollapse}
+              className="hidden size-7 cursor-pointer place-items-center rounded-md border border-[var(--card-edge)] bg-[var(--surface)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)] lg:grid"
+            >
+              <ChevronLeft className="size-3.5" />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+
+        {/* Active habit cards */}
+        {activeHabits.length === 0 ? (
           <button
             type="button"
-            aria-label="Add habit"
-            title="Add habit"
             onClick={onOpenAddHabit}
-            className="grid size-7 cursor-pointer place-items-center rounded-md border border-[var(--card-edge)] bg-[var(--surface)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
+            className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--card-edge-hover)] bg-[var(--surface)]/50 px-4 py-6 text-center transition-colors hover:bg-[var(--accent-surface)]"
           >
-            <Plus className="size-3.5" />
+            <Plus className="size-5 text-[var(--muted-foreground)]" />
+            <span className="text-xs font-semibold text-[var(--foreground)]">
+              Add your first habit
+            </span>
+            <span className="text-[11px] text-[var(--muted-foreground)]">
+              Track daily or weekly streaks
+            </span>
           </button>
-          <button
-            type="button"
-            aria-label="Collapse sidebar"
-            title="Collapse sidebar"
-            onClick={onToggleCollapse}
-            className="hidden size-7 cursor-pointer place-items-center rounded-md border border-[var(--card-edge)] bg-[var(--surface)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)] lg:grid"
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
-        </div>
-      </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {activeHabits.map((habit, idx) => {
+              const meta = getHabitColorMeta(habit.color)
+              const doneToday = isHabitDoneOnDate(habit, todayKey, habitCheckins, labEntries)
+              const weekCount = currentWeek
+                ? getHabitWeekCount(habit, currentWeek, habitCheckins, labEntries)
+                : 0
+              const streak = getHabitStreak(habit, todayKey, habitCheckins, labEntries)
+              const isOverlay = activeHabitOverlayId === habit.id
 
-      {/* Habit cards */}
-      <div className="flex flex-col gap-2.5">
-        {habits.map((habit) => {
-          const meta = getHabitColorMeta(habit.color)
-          const doneToday = isHabitDoneOnDate(habit, todayKey, habitCheckins, labEntries)
-          const weekCount = currentWeek
-            ? getHabitWeekCount(habit, currentWeek, habitCheckins, labEntries)
-            : 0
-          const streak = getHabitStreak(habit, todayKey, habitCheckins, labEntries)
-          const isOverlay = activeHabitOverlayId === habit.id
-          const todayMins = habit.isLabs ? getLabMinutesForDate(labEntries, todayKey) : 0
-          const targetMins = habit.dailyMinutesTarget ?? 20
-
-          return (
-            <div
-              key={habit.id}
-              style={{
-                background: meta.tintVar,
-                borderColor: isOverlay ? meta.colorVar : 'var(--card-edge)',
-                boxShadow: isOverlay ? `0 0 0 1px ${meta.colorVar}` : undefined,
-              }}
-              className="group relative flex items-center gap-3 rounded-xl border p-3 transition-all"
-            >
-              {/* Circular toggle */}
-              <button
-                type="button"
-                aria-pressed={doneToday}
-                aria-label={
-                  habit.isLabs
-                    ? `Log +${targetMins} min for ${habit.name}`
-                    : doneToday
-                      ? `Undo ${habit.name} for today`
-                      : `Mark ${habit.name} done for today`
-                }
-                onClick={() =>
-                  habit.isLabs ? onQuickLogLabs(targetMins) : onToggleHabitToday(habit.id)
-                }
-                style={{
-                  background: doneToday ? meta.colorVar : 'transparent',
-                  borderColor: meta.colorVar,
-                  color: doneToday ? 'var(--yb-on)' : meta.inkVar,
-                }}
-                className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border-2 transition-transform active:scale-95"
-              >
-                {habit.isLabs ? (
-                  <FlaskConical className="size-5" />
-                ) : (
-                  <Check className={`size-5 stroke-[2.5] ${doneToday ? 'opacity-100' : 'opacity-35'}`} />
-                )}
-              </button>
-
-              {/* Info */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1">
-                  <span className="truncate text-sm font-semibold text-[var(--foreground)]">
-                    {habit.name}
-                  </span>
-                </div>
-                <div className="mt-0.5 flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
-                  <Flame className="size-3 shrink-0" style={{ color: 'var(--yb-flame)' }} />
-                  <span className="truncate">
-                    {streak.count}-{streak.unit} streak
-                  </span>
-                </div>
-
-                {/* Segmented weekly bar */}
-                <div className="mt-2 flex items-center gap-1">
-                  {Array.from({ length: habit.weeklyTarget }).map((_, idx) => {
-                    const filled = idx < weekCount
-                    return (
-                      <span
-                        key={idx}
-                        style={{
-                          background: filled ? meta.colorVar : 'var(--yb-cell-weekend)',
-                        }}
-                        className="h-1.5 flex-1 rounded-full transition-colors"
-                      />
-                    )
-                  })}
-                </div>
-
-                <div className="mt-1 text-[11px] text-[var(--muted-foreground)]">
-                  {habit.isLabs
-                    ? `${todayMins} of ${targetMins} min today`
-                    : `${weekCount} of ${habit.weeklyTarget} this week`}
-                </div>
-              </div>
-
-              {/* Right actions: edit + eye */}
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  type="button"
-                  aria-label={`Edit ${habit.name}`}
-                  onClick={() => onOpenEditHabit(habit)}
-                  className="grid size-6 cursor-pointer place-items-center rounded-md text-[var(--muted-foreground)] opacity-60 transition-opacity hover:bg-black/15 hover:text-[var(--foreground)] hover:opacity-100 dark:hover:bg-white/10"
-                >
-                  <MoreHorizontal className="size-3.5" />
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={isOverlay}
-                  aria-label={
-                    isOverlay
-                      ? `Hide ${habit.name} from the year board`
-                      : `Show ${habit.name} on the year board`
-                  }
-                  title={isOverlay ? 'Hide from year board' : 'Show on year board'}
-                  onClick={() => onToggleHabitOverlay(habit.id)}
+              return (
+                <div
+                  key={habit.id}
                   style={{
-                    background: isOverlay ? meta.colorVar : 'transparent',
-                    color: isOverlay ? 'var(--yb-on)' : 'var(--muted-foreground)',
+                    background: meta.tintVar,
                     borderColor: isOverlay ? meta.colorVar : 'var(--card-edge)',
+                    boxShadow: isOverlay ? `0 0 0 1px ${meta.colorVar}` : undefined,
                   }}
-                  className="grid size-7 cursor-pointer place-items-center rounded-lg border transition-colors hover:border-[var(--card-edge-hover)]"
+                  className="group relative flex items-center gap-3 rounded-xl border p-3 transition-all"
                 >
-                  {isOverlay ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                </button>
+                  {/* Circular toggle */}
+                  <button
+                    type="button"
+                    aria-pressed={doneToday}
+                    aria-label={
+                      doneToday
+                        ? `Undo ${habit.name} for today`
+                        : `Mark ${habit.name} done for today`
+                    }
+                    onClick={() => onToggleHabitToday(habit.id)}
+                    style={{
+                      background: doneToday ? meta.colorVar : 'transparent',
+                      borderColor: meta.colorVar,
+                      color: doneToday ? 'var(--yb-on)' : meta.inkVar,
+                    }}
+                    className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border-2 transition-transform active:scale-95"
+                  >
+                    <Check
+                      className={`size-5 stroke-[2.5] ${doneToday ? 'opacity-100' : 'opacity-35'}`}
+                    />
+                  </button>
+
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="truncate text-sm font-semibold text-[var(--foreground)]">
+                        {habit.name}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
+                      <Flame className="size-3 shrink-0" style={{ color: 'var(--yb-flame)' }} />
+                      <span className="truncate">
+                        {streak.count}-{streak.unit} streak
+                      </span>
+                    </div>
+
+                    {/* Segmented weekly bar */}
+                    <div className="mt-2 flex items-center gap-1">
+                      {Array.from({ length: habit.weeklyTarget }).map((_, barIdx) => {
+                        const filled = barIdx < weekCount
+                        return (
+                          <span
+                            key={barIdx}
+                            style={{
+                              background: filled ? meta.colorVar : 'var(--yb-cell-weekend)',
+                            }}
+                            className="h-1.5 flex-1 rounded-full transition-colors"
+                          />
+                        )
+                      })}
+                    </div>
+
+                    <div className="mt-1 text-[11px] text-[var(--muted-foreground)]">
+                      {weekCount} of {habit.weeklyTarget} this week
+                    </div>
+                  </div>
+
+                  {/* Right actions: edit + eye */}
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={`Edit ${habit.name}`}
+                      onClick={() => onOpenEditHabit(habit)}
+                      className="grid size-6 cursor-pointer place-items-center rounded-md text-[var(--muted-foreground)] opacity-60 transition-opacity hover:bg-black/15 hover:text-[var(--foreground)] hover:opacity-100 dark:hover:bg-white/10"
+                    >
+                      <MoreHorizontal className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      data-tour={idx === 0 ? 'habit-eye' : undefined}
+                      aria-pressed={isOverlay}
+                      aria-label={
+                        isOverlay
+                          ? `Hide ${habit.name} from the year board`
+                          : `Show ${habit.name} on the year board`
+                      }
+                      title={isOverlay ? 'Hide from year board' : 'Show on year board'}
+                      onClick={() => onToggleHabitOverlay(habit.id)}
+                      style={{
+                        background: isOverlay ? meta.colorVar : 'transparent',
+                        color: isOverlay ? 'var(--yb-on)' : 'var(--muted-foreground)',
+                        borderColor: isOverlay ? meta.colorVar : 'var(--card-edge)',
+                      }}
+                      className="grid size-7 cursor-pointer place-items-center rounded-lg border transition-colors hover:border-[var(--card-edge-hover)]"
+                    >
+                      {isOverlay ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Archived habits collapsible */}
+        {archivedHabits.length > 0 && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setShowArchived((s) => !s)}
+              className="flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent-surface)] hover:text-[var(--foreground)]"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Archive className="size-3.5" />
+                Archived habits ({archivedHabits.length})
+              </span>
+              <ChevronDown
+                className={`size-3.5 transition-transform ${showArchived ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {showArchived && (
+              <div className="mt-1.5 flex flex-col gap-1.5">
+                {archivedHabits.map((habit) => {
+                  const meta = getHabitColorMeta(habit.color)
+                  const isOverlay = activeHabitOverlayId === habit.id
+                  const totalDone = Object.values(habitCheckins[habit.id] ?? {}).filter(Boolean).length
+
+                  return (
+                    <div
+                      key={habit.id}
+                      style={{
+                        borderColor: isOverlay ? meta.colorVar : 'var(--card-edge)',
+                      }}
+                      className="flex items-center justify-between gap-2 rounded-lg border bg-[var(--surface)]/60 px-2.5 py-2"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span
+                          className="size-2.5 shrink-0 rounded-full opacity-75"
+                          style={{ background: meta.colorVar }}
+                        />
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-medium text-[var(--foreground)]">
+                            {habit.name}
+                          </div>
+                          <div className="text-[10px] text-[var(--muted-foreground)]">
+                            {totalDone} {totalDone === 1 ? 'day' : 'days'} logged
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          title={isOverlay ? 'Hide from year board' : 'Show past check-ins on board'}
+                          onClick={() => onToggleHabitOverlay(habit.id)}
+                          style={{
+                            background: isOverlay ? meta.colorVar : 'transparent',
+                            color: isOverlay ? 'var(--yb-on)' : 'var(--muted-foreground)',
+                          }}
+                          className="grid size-7 cursor-pointer place-items-center rounded-md border border-[var(--card-edge)] hover:border-[var(--card-edge-hover)]"
+                        >
+                          {isOverlay ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                        </button>
+                        <button
+                          type="button"
+                          title={`Unarchive ${habit.name}`}
+                          aria-label={`Unarchive ${habit.name}`}
+                          onClick={() => onToggleArchiveHabit(habit.id, false)}
+                          className="grid size-7 cursor-pointer place-items-center rounded-md border border-[var(--card-edge)] text-[var(--muted-foreground)] hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
+                        >
+                          <ArchiveRestore className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-          )
-        })}
+            )}
+          </div>
+        )}
       </div>
 
       {/* Perfect weeks card */}
       <div
+        data-tour="perfect-weeks"
         style={{ background: 'var(--yb-ok-tint)' }}
         className="mt-5 rounded-xl border border-[var(--card-edge)] p-3.5"
       >
@@ -295,13 +382,13 @@ export function Sidebar({
         </div>
         <p className="mt-1 text-xs leading-relaxed text-[var(--muted-foreground)]">
           {perfectWeeks.total} this year · best run {perfectWeeks.bestRun}{' '}
-          {perfectWeeks.bestRun === 1 ? 'week' : 'weeks'}. A perfect week means every habit hit its
-          target.
+          {perfectWeeks.bestRun === 1 ? 'week' : 'weeks'}. A perfect week means every active habit
+          hit its target.
         </p>
       </div>
 
       {/* Quarter goals */}
-      <div className="mt-6">
+      <div data-tour="quarter-goals" className="mt-6">
         <div className="mb-2.5 text-xs font-medium text-[var(--muted-foreground)]">
           Quarter goals
         </div>
@@ -435,7 +522,7 @@ export function Sidebar({
       </div>
 
       {/* Category filters: Show */}
-      <div className="mt-6">
+      <div data-tour="category-filters" className="mt-6">
         <div className="mb-2 text-xs font-medium text-[var(--muted-foreground)]">Show</div>
         <div role="group" aria-label="Filter categories" className="flex flex-wrap gap-1.5">
           {CATEGORIES.map((cat) => {
@@ -452,10 +539,7 @@ export function Sidebar({
                     : 'border-[var(--card-edge)] text-[var(--muted-foreground)] opacity-45 line-through'
                 }`}
               >
-                <span
-                  className="size-2 rounded-full"
-                  style={{ background: cat.colorVar }}
-                />
+                <span className="size-2 rounded-full" style={{ background: cat.colorVar }} />
                 {cat.label}
               </button>
             )

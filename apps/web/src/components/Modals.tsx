@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Copy, Download, Trash2, X } from 'lucide-react'
+import { Archive, ArchiveRestore, Check, Copy, Download, Trash2, X } from 'lucide-react'
 import {
   CATEGORIES,
   formatShortRange,
@@ -237,16 +237,21 @@ interface HabitModalProps {
   initialHabit: Habit | null
   onClose: () => void
   onSave: (habit: Omit<Habit, 'id'>, existingId?: string) => void
+  onToggleArchive: (habitId: string, archived: boolean) => void
   onDelete: (habitId: string) => void
 }
 
-export function HabitModal({ open, initialHabit, onClose, onSave, onDelete }: HabitModalProps) {
+export function HabitModal({
+  open,
+  initialHabit,
+  onClose,
+  onSave,
+  onToggleArchive,
+  onDelete,
+}: HabitModalProps) {
   const [name, setName] = useState(initialHabit?.name ?? '')
   const [color, setColor] = useState<HabitColor>(initialHabit?.color ?? 'green')
   const [weeklyTarget, setWeeklyTarget] = useState(initialHabit?.weeklyTarget ?? 5)
-  const [dailyMinutesTarget, setDailyMinutesTarget] = useState(
-    initialHabit?.dailyMinutesTarget ?? 20,
-  )
 
   if (!open) return null
 
@@ -258,8 +263,7 @@ export function HabitModal({ open, initialHabit, onClose, onSave, onDelete }: Ha
         name: name.trim(),
         color,
         weeklyTarget,
-        isLabs: initialHabit?.isLabs,
-        dailyMinutesTarget: initialHabit?.isLabs ? dailyMinutesTarget : undefined,
+        archived: initialHabit?.archived,
       },
       initialHabit?.id,
     )
@@ -297,7 +301,7 @@ export function HabitModal({ open, initialHabit, onClose, onSave, onDelete }: Ha
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Gym, Read 20 min, Journal"
+              placeholder="e.g. Gym, Running, Read 20 min"
               className="h-10 w-full rounded-lg border border-[var(--card-edge-hover)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--foreground)]"
             />
           </div>
@@ -315,7 +319,9 @@ export function HabitModal({ open, initialHabit, onClose, onSave, onDelete }: Ha
                   onClick={() => setColor(c.id)}
                   style={{ background: c.colorVar }}
                   className={`grid size-8 cursor-pointer place-items-center rounded-full transition-transform ${
-                    color === c.id ? 'scale-110 ring-2 ring-[var(--foreground)] ring-offset-2 ring-offset-[var(--yb-sheet)]' : 'opacity-70 hover:opacity-100'
+                    color === c.id
+                      ? 'scale-110 ring-2 ring-[var(--foreground)] ring-offset-2 ring-offset-[var(--yb-sheet)]'
+                      : 'opacity-70 hover:opacity-100'
                   }`}
                 >
                   {color === c.id && <Check className="size-4 text-[var(--yb-on)] stroke-[3]" />}
@@ -349,30 +355,43 @@ export function HabitModal({ open, initialHabit, onClose, onSave, onDelete }: Ha
             </div>
           </div>
 
-          {initialHabit?.isLabs && (
-            <div>
-              <div className="mb-1.5 flex items-center justify-between text-xs">
-                <span className="font-medium text-[var(--muted-foreground)]">
-                  Daily minutes target
-                </span>
-                <span className="font-mono-num font-semibold text-[var(--foreground)]">
-                  {dailyMinutesTarget} min
-                </span>
+          {initialHabit && (
+            <div className="flex items-center justify-between rounded-xl border border-[var(--card-edge)] bg-[var(--background)]/60 p-3">
+              <div>
+                <div className="text-xs font-semibold text-[var(--foreground)]">
+                  {initialHabit.archived ? 'Archived habit' : 'Archive this habit'}
+                </div>
+                <div className="text-[11px] text-[var(--muted-foreground)]">
+                  {initialHabit.archived
+                    ? 'Restore to active habits list.'
+                    : 'Hides from today while keeping all past check-ins.'}
+                </div>
               </div>
-              <input
-                type="number"
-                min={5}
-                max={240}
-                step={5}
-                value={dailyMinutesTarget}
-                onChange={(e) => setDailyMinutesTarget(Math.max(5, Number(e.target.value) || 20))}
-                className="h-9 w-full rounded-lg border border-[var(--card-edge-hover)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--foreground)]"
-              />
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleArchive(initialHabit.id, !initialHabit.archived)
+                  onClose()
+                }}
+                className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--card-edge-hover)] px-2.5 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--accent-surface)]"
+              >
+                {initialHabit.archived ? (
+                  <>
+                    <ArchiveRestore className="size-3.5" />
+                    Unarchive
+                  </>
+                ) : (
+                  <>
+                    <Archive className="size-3.5" />
+                    Archive
+                  </>
+                )}
+              </button>
             </div>
           )}
 
           <div className="mt-1 flex items-center justify-between">
-            {initialHabit && !initialHabit.isLabs ? (
+            {initialHabit ? (
               <button
                 type="button"
                 onClick={() => {

@@ -1,17 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  FlaskConical,
-  Pencil,
-  Plus,
-  X,
-} from 'lucide-react'
+import { useEffect } from 'react'
+import { Check, ChevronLeft, ChevronRight, Pencil, Plus, X } from 'lucide-react'
 import {
   DAY_INITIAL,
   DAY_SHORT,
-  formatMinutes,
   formatShortRange,
   getCategoryMeta,
   getHabitColorMeta,
@@ -40,7 +31,6 @@ interface WeekDrawerProps {
   onNavigateWeek: (delta: -1 | 1) => void
   onUpdateWeekMeta: (weekKey: string, patch: Partial<WeekMeta>) => void
   onToggleHabitOnDate: (habitId: string, dateKey: string) => void
-  onAddLabEntry: (dateKey: string, topic: string, minutes: number) => void
   onOpenNewPlan: (startDate: string, endDate: string) => void
   onOpenEditPlan: (plan: Plan) => void
   onCyclePlanStatus: (planId: string) => void
@@ -74,13 +64,10 @@ export function WeekDrawer({
   onNavigateWeek,
   onUpdateWeekMeta,
   onToggleHabitOnDate,
-  onAddLabEntry,
   onOpenNewPlan,
   onOpenEditPlan,
   onCyclePlanStatus,
 }: WeekDrawerProps) {
-  const [labTopic, setLabTopic] = useState('Deep Focus')
-
   useEffect(() => {
     if (!week) return
     const handleKey = (e: KeyboardEvent) => {
@@ -90,39 +77,24 @@ export function WeekDrawer({
     return () => window.removeEventListener('keydown', handleKey)
   }, [week, onClose])
 
-  const weekLabBreakdown = useMemo(() => {
-    if (!week) return { total: 0, topics: [] as { topic: string; minutes: number }[] }
-    const daySet = new Set(week.days)
-    const byTopic = new Map<string, number>()
-    let total = 0
-    for (const entry of labEntries) {
-      if (!daySet.has(entry.date)) continue
-      total += entry.minutes
-      byTopic.set(entry.topic, (byTopic.get(entry.topic) ?? 0) + entry.minutes)
-    }
-    const topics = [...byTopic.entries()]
-      .map(([topic, minutes]) => ({ topic, minutes }))
-      .sort((a, b) => b.minutes - a.minutes)
-    return { total, topics }
-  }, [week, labEntries])
-
   if (!week) return null
 
   const isThisWeek = week.weekKey === currentWeekKey
   const isPastWeek = week.endKey < todayKey
   const weekTag = isThisWeek ? 'this week' : isPastWeek ? 'past' : 'upcoming'
 
-  const logDateKey = week.days.includes(todayKey) ? todayKey : week.days[0]
+  // Show active habits + any archived habit that has check-ins during this week
+  const visibleHabits = habits.filter(
+    (h) => !h.archived || getHabitWeekCount(h, week, habitCheckins, labEntries) > 0,
+  )
 
   return (
     <div className="fixed inset-0 z-40 flex">
-      {/* Backdrop */}
       <div
         onClick={onClose}
         className="fixed inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity"
       />
 
-      {/* Left slide-over sheet */}
       <aside
         role="dialog"
         aria-label={`Week ${week.weekNumber} details`}
@@ -187,10 +159,11 @@ export function WeekDrawer({
           </div>
 
           {/* Habits this week grid */}
-          {habits.length > 0 && (
+          {visibleHabits.length > 0 && (
             <div className="mt-5">
-              <div className="mb-2 text-xs font-medium text-[var(--muted-foreground)]">
-                Habits this week
+              <div className="mb-2 flex items-center justify-between text-xs font-medium text-[var(--muted-foreground)]">
+                <span>Habits this week</span>
+                <span className="text-[10px] opacity-75">Past &amp; today only</span>
               </div>
               <div className="grid grid-cols-[1fr_repeat(7,28px)_36px] items-center gap-1">
                 <div />
@@ -204,14 +177,15 @@ export function WeekDrawer({
                 ))}
                 <div />
 
-                {habits.map((habit) => {
+                {visibleHabits.map((habit) => {
                   const meta = getHabitColorMeta(habit.color)
                   const count = getHabitWeekCount(habit, week, habitCheckins, labEntries)
                   return (
                     <div key={habit.id} className="contents">
-                      <div className="flex items-center gap-1.5 truncate pr-2 text-xs font-medium text-[var(--foreground)]">
-                        {habit.isLabs && <FlaskConical className="size-3 shrink-0 opacity-70" />}
-                        <span className="truncate">{habit.name}</span>
+                      <div className="flex items-center gap-1 truncate pr-2 text-xs font-medium text-[var(--foreground)]">
+                        <span className={`truncate ${habit.archived ? 'opacity-60' : ''}`}>
+                          {habit.name}
+                        </span>
                       </div>
 
                       {week.days.map((dayKey) => {
@@ -222,9 +196,21 @@ export function WeekDrawer({
                           <button
                             key={dayKey}
                             type="button"
+                            disabled={isFuture}
                             aria-pressed={done}
-                            aria-label={`${habit.name} on ${dayKey}`}
-                            onClick={() => onToggleHabitOnDate(habit.id, dayKey)}
+                            title={
+                              isFuture
+                                ? "Can't log future days"
+                                : `${habit.name} on ${dayKey}`
+                            }
+                            aria-label={
+                              isFuture
+                                ? `${habit.name} on ${dayKey} (future day locked)`
+                                : `${habit.name} on ${dayKey}`
+                            }
+                            onClick={() => {
+                              if (!isFuture) onToggleHabitOnDate(habit.id, dayKey)
+                            }}
                             style={{
                               background: done ? meta.colorVar : 'transparent',
                               color: done ? 'var(--yb-on)' : 'transparent',
@@ -234,8 +220,10 @@ export function WeekDrawer({
                                   ? meta.colorVar
                                   : 'var(--card-edge-hover)',
                             }}
-                            className={`grid size-7 cursor-pointer place-items-center rounded-md border transition-transform active:scale-95 ${
-                              isFuture && !done ? 'border-dashed opacity-45' : ''
+                            className={`grid size-7 place-items-center rounded-md border transition-transform ${
+                              isFuture
+                                ? 'cursor-not-allowed border-dashed opacity-30'
+                                : 'cursor-pointer active:scale-95'
                             } ${isToday ? 'ring-1 ring-[var(--foreground)]' : ''}`}
                           >
                             {done && <Check className="size-3.5 stroke-[3]" />}
@@ -252,57 +240,6 @@ export function WeekDrawer({
               </div>
             </div>
           )}
-
-          {/* Labs / Focus time this week */}
-          <div className="mt-5">
-            <div className="mb-2 text-xs font-medium text-[var(--muted-foreground)]">
-              Labs this week
-            </div>
-            <div className="rounded-xl border border-[var(--card-edge)] bg-[var(--background)]/60 p-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-                  <FlaskConical className="size-4" style={{ color: 'var(--yb-teal)' }} />
-                  <span>{formatMinutes(weekLabBreakdown.total)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {[15, 30].map((mins) => (
-                    <button
-                      key={mins}
-                      type="button"
-                      onClick={() => onAddLabEntry(logDateKey, labTopic.trim() || 'Labs', mins)}
-                      className="cursor-pointer rounded-md border border-[var(--card-edge-hover)] px-2 py-0.5 text-[11px] font-medium text-[var(--foreground)] hover:bg-[var(--accent-surface)]"
-                    >
-                      +{mins}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {weekLabBreakdown.topics.length > 0 && (
-                <div className="mt-2.5 flex flex-col gap-1 border-t border-[var(--card-edge)] pt-2">
-                  {weekLabBreakdown.topics.map((item) => (
-                    <div
-                      key={item.topic}
-                      className="flex items-center justify-between text-xs text-[var(--muted-foreground)]"
-                    >
-                      <span className="truncate">{item.topic}</span>
-                      <span className="font-mono-num shrink-0">{formatMinutes(item.minutes)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--card-edge)] pt-2.5">
-                <input
-                  type="text"
-                  value={labTopic}
-                  onChange={(e) => setLabTopic(e.target.value)}
-                  placeholder="Lab / session name"
-                  className="h-7 min-w-0 flex-1 rounded-md border border-[var(--card-edge)] bg-[var(--surface)] px-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--card-edge-hover)]"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Daily plans list Mon..Sun */}
           <div className="mt-5">

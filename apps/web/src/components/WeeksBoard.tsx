@@ -132,7 +132,7 @@ export function WeeksBoard({
     : null
 
   return (
-    <div className="select-none">
+    <div data-tour="year-grid" className="select-none">
       {/* 2-column quarter grid: Q1/Q3 top, Q2/Q4 bottom */}
       <div className="grid grid-cols-1 gap-x-6 gap-y-6 xl:grid-cols-2">
         {QUARTER_GROUPS.map((group) => (

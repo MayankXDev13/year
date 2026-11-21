@@ -5,7 +5,6 @@ import {
   getTodayKey,
   parseDateKey,
   type Habit,
-  type LabEntry,
   type Plan,
   type QuarterGoal,
   type YearBoardData,
@@ -25,12 +24,11 @@ export function createSampleYearBoardData(): YearBoardData {
     { id: 'habit-gym', name: 'Gym', color: 'green', weeklyTarget: 4 },
     { id: 'habit-read', name: 'Read 20 min', color: 'purple', weeklyTarget: 7 },
     { id: 'habit-meditate', name: 'Meditate', color: 'blue', weeklyTarget: 7 },
-    { id: 'habit-labs', name: 'Labs', color: 'teal', weeklyTarget: 7, isLabs: true, dailyMinutesTarget: 20 },
   ]
 
   const plans: Plan[] = [
     { id: 'p-1', title: 'Set the year up', startDate: yDate(year, 1, 5), endDate: yDate(year, 1, 5), category: 'work', status: 'done' },
-    { id: 'p-2', title: 'Rust lab sprint', startDate: yDate(year, 1, 12), endDate: yDate(year, 1, 16), category: 'learning', status: 'done' },
+    { id: 'p-2', title: 'Rust sprint', startDate: yDate(year, 1, 12), endDate: yDate(year, 1, 16), category: 'learning', status: 'done' },
     { id: 'p-3', title: 'Jaipur trip', startDate: yDate(year, 2, 6), endDate: yDate(year, 2, 9), category: 'travel', status: 'done' },
     { id: 'p-4', title: 'First 10k run', startDate: yDate(year, 3, 1), endDate: yDate(year, 3, 1), category: 'health', status: 'done' },
     { id: 'p-5', title: 'Q1 review', startDate: yDate(year, 3, 5), endDate: yDate(year, 3, 6), category: 'work', status: 'done' },
@@ -54,14 +52,11 @@ export function createSampleYearBoardData(): YearBoardData {
     { id: 'p-23', title: "New Year's Eve", startDate: yDate(year, 12, 31), endDate: yDate(year, 12, 31), category: 'personal', status: 'planned' },
   ]
 
-  // Deterministic pseudo-random habit history up to today
   const habitCheckins: Record<string, Record<string, boolean>> = {
     'habit-gym': {},
     'habit-read': {},
     'habit-meditate': {},
-    'habit-labs': {},
   }
-  const labEntries: LabEntry[] = []
 
   const jan1 = new Date(year, 0, 1)
   const totalDays = Math.floor((today.getTime() - jan1.getTime()) / 86_400_000)
@@ -69,10 +64,9 @@ export function createSampleYearBoardData(): YearBoardData {
   for (let i = 0; i <= totalDays; i++) {
     const key = addDays(yDate(year, 1, 1), i)
     const d = parseDateKey(key)
-    const dow = d.getDay() // 0 Sun .. 6 Sat
+    const dow = d.getDay()
     const daysAgo = totalDays - i
 
-    // Gym: 4 days/week reliably in last 9 weeks (Mon/Wed/Fri/Sat), varied earlier
     if (daysAgo <= 63) {
       if (dow === 1 || dow === 3 || dow === 5 || dow === 6) {
         habitCheckins['habit-gym'][key] = true
@@ -84,46 +78,26 @@ export function createSampleYearBoardData(): YearBoardData {
       }
     }
 
-    // Read 20 min: strong streak last 63 days
     if (daysAgo < 63) {
       habitCheckins['habit-read'][key] = true
     } else if ((i * 19 + 5) % 10 > 2) {
       habitCheckins['habit-read'][key] = true
     }
 
-    // Meditate: strong streak last 67 days
     if (daysAgo < 67) {
       habitCheckins['habit-meditate'][key] = true
     } else if ((i * 23 + 7) % 10 > 2) {
       habitCheckins['habit-meditate'][key] = true
     }
-
-    // Labs: logged minutes on selected days, plus strong recent week
-    if (daysAgo === 0) {
-      labEntries.push({ id: `lab-${key}`, date: key, topic: 'Chai aur Python', minutes: 25 })
-    } else if (daysAgo === 1) {
-      labEntries.push({ id: `lab-${key}`, date: key, topic: 'Chai aur Python', minutes: 64 })
-    } else if (daysAgo === 3) {
-      labEntries.push({ id: `lab-${key}`, date: key, topic: 'Chai aur Python', minutes: 55 })
-    } else if (daysAgo === 4) {
-      labEntries.push({ id: `lab-${key}`, date: key, topic: 'Chai aur Python', minutes: 55 })
-    } else if (daysAgo > 6 && (i * 29 + 11) % 10 > 3) {
-      labEntries.push({
-        id: `lab-${key}`,
-        date: key,
-        topic: i % 2 === 0 ? 'Rust Systems Lab' : 'Chai aur Python',
-        minutes: 25 + ((i * 7) % 45),
-      })
-    }
   }
 
   const quarterGoals: QuarterGoal[] = [
-    { id: 'qg-1', year, quarter: 1, title: 'Finish the Rust lab', done: true },
+    { id: 'qg-1', year, quarter: 1, title: 'Ship side project', done: true },
     { id: 'qg-2', year, quarter: 1, title: 'Run a 10k', done: true },
     { id: 'qg-3', year, quarter: 2, title: 'Speak at one conference', done: true },
     { id: 'qg-4', year, quarter: 3, title: 'Ship product v2', done: true },
     { id: 'qg-5', year, quarter: 3, title: 'Half marathon', done: true },
-    { id: 'qg-6', year, quarter: 4, title: 'Finish three labs', done: false },
+    { id: 'qg-6', year, quarter: 4, title: 'Read 12 books', done: false },
     { id: 'qg-7', year, quarter: 4, title: 'Take a real break', done: false },
   ]
 
@@ -132,7 +106,7 @@ export function createSampleYearBoardData(): YearBoardData {
     [`${year}-W19`]: { focus: 'Work from the mountains', notes: '' },
     [`${year}-W36`]: { focus: 'Launch week', notes: 'Ship v2, monitor metrics, celebrate with the team.' },
     [curIso.weekKey]: {
-      focus: 'Finish module 3 of the Rust lab',
+      focus: 'Finish Q4 milestone',
       notes: 'Keep mornings clear for deep work. Wrap up Deep Work reading by Friday.',
     },
   }
@@ -142,7 +116,7 @@ export function createSampleYearBoardData(): YearBoardData {
     plans,
     habits,
     habitCheckins,
-    labEntries,
+    labEntries: [],
     quarterGoals,
     weekMeta,
     hiddenCategories: [],
@@ -157,9 +131,7 @@ export function createEmptyYearBoardData(): YearBoardData {
   return {
     ownerName: 'My Year',
     plans: [],
-    habits: [
-      { id: 'habit-labs', name: 'Focus', color: 'teal', weeklyTarget: 7, isLabs: true, dailyMinutesTarget: 20 },
-    ],
+    habits: [],
     habitCheckins: {},
     labEntries: [],
     quarterGoals: [],

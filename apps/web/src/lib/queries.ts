@@ -116,11 +116,43 @@ export function useBoardMutations(onError: (msg: string) => void) {
     onError: (e) => handleErr(e, 'Failed to delete habit'),
   })
 
+  const toggleArchiveHabit = useMutation({
+    mutationFn: ({ habitId, archived }: { habitId: string; archived: boolean }) =>
+      apiFetch<{ ok: true }>(`/api/habits/${habitId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ archived }),
+      }),
+    onMutate: async ({ habitId, archived }) => {
+      await queryClient.cancelQueries({ queryKey: boardKeys.all })
+      const prev = queryClient.getQueryData<YearBoardData>(boardKeys.all)
+      if (prev) {
+        queryClient.setQueryData<YearBoardData>(boardKeys.all, {
+          ...prev,
+          habits: prev.habits.map((h) => (h.id === habitId ? { ...h, archived } : h)),
+        })
+      }
+      return { prev }
+    },
+    onError: (e, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(boardKeys.all, ctx.prev)
+      handleErr(e, 'Failed to update habit archive status')
+    },
+    onSettled: invalidate,
+  })
+
   const toggleHabitCheckin = useMutation({
-    mutationFn: ({ habitId, dateKey }: { habitId: string; dateKey: string }) =>
+    mutationFn: ({
+      habitId,
+      dateKey,
+      todayKey,
+    }: {
+      habitId: string
+      dateKey: string
+      todayKey: string
+    }) =>
       apiFetch<{ done: boolean }>(`/api/habits/${habitId}/toggle`, {
         method: 'POST',
-        body: JSON.stringify({ dateKey }),
+        body: JSON.stringify({ dateKey, todayKey }),
       }),
     onMutate: async ({ habitId, dateKey }) => {
       await queryClient.cancelQueries({ queryKey: boardKeys.all })
@@ -238,6 +270,7 @@ export function useBoardMutations(onError: (msg: string) => void) {
     updatePlanStatus,
     saveHabit,
     deleteHabit,
+    toggleArchiveHabit,
     toggleHabitCheckin,
     addLabEntry,
     addGoal,
