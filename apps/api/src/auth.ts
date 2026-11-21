@@ -10,6 +10,17 @@ export function createAuth(env: Env) {
   const apiUrl = (env.BETTER_AUTH_URL || 'http://localhost:8787').replace(/\/$/, '')
   const isSecure = apiUrl.startsWith('https://')
 
+  let cookieDomain: string | undefined
+  try {
+    const webHost = new URL(webUrl).hostname
+    const apiHost = new URL(apiUrl).hostname
+    if (isSecure && apiHost.endsWith(`.${webHost}`)) {
+      cookieDomain = `.${webHost}`
+    }
+  } catch {
+    // ignore URL parse error
+  }
+
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: 'sqlite',
@@ -44,8 +55,16 @@ export function createAuth(env: Env) {
       errorURL: `${webUrl}/auth/error`,
     },
     advanced: {
+      ...(cookieDomain
+        ? {
+            crossSubDomainCookies: {
+              enabled: true,
+              domain: cookieDomain,
+            },
+          }
+        : {}),
       defaultCookieAttributes: {
-        sameSite: isSecure ? 'none' : 'lax',
+        sameSite: cookieDomain || !isSecure ? 'lax' : 'none',
         secure: isSecure,
         httpOnly: true,
       },
