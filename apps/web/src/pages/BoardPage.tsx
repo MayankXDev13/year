@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, ArrowUpRight, Loader2, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
+  getHabitWeekCount,
   getISOWeekInfoForDate,
   getISOWeeksForYear,
   getPerfectWeeksStats,
@@ -19,13 +20,15 @@ import {
   type YearBoardData,
 } from '@year-board/shared'
 import { DaysBoard } from '../components/DaysBoard'
-import { HabitModal, PlanModal, ShareModal, TourModal } from '../components/Modals'
+import { HabitModal, PlanModal, ShareModal } from '../components/Modals'
 import { Sidebar } from '../components/Sidebar'
+import { SpotlightTour } from '../components/SpotlightTour'
 import { Toolbar } from '../components/Toolbar'
 import { WeekDrawer } from '../components/WeekDrawer'
 import { WeeksBoard } from '../components/WeeksBoard'
 import { useSession } from '../lib/auth-client'
 import { useBoardMutations, useBoardQuery } from '../lib/queries'
+import { fireConfetti } from '../utils/confetti'
 import { createSampleYearBoardData } from '../utils/sampleData'
 
 const STORAGE_KEY = 'year-board-data-v1'
@@ -223,6 +226,22 @@ export function BoardPage() {
         return
       }
 
+      // Check if toggling ON completes this habit's weekly target -> fire confetti!
+      const habit = data.habits.find((h) => h.id === habitId)
+      const currentlyDone = Boolean(data.habitCheckins[habitId]?.[dateKey])
+      if (habit && !currentlyDone) {
+        const targetIso = getISOWeekInfoForDate(dateKey)
+        const targetWeek = getISOWeeksForYear(targetIso.year).find(
+          (w) => w.weekKey === targetIso.weekKey,
+        )
+        if (targetWeek) {
+          const beforeCount = getHabitWeekCount(habit, targetWeek, data.habitCheckins, data.labEntries)
+          if (beforeCount < habit.weeklyTarget && beforeCount + 1 >= habit.weeklyTarget) {
+            fireConfetti()
+          }
+        }
+      }
+
       if (isAuthenticated) {
         mutations.toggleHabitCheckin.mutate({ habitId, dateKey, todayKey })
         return
@@ -230,9 +249,9 @@ export function BoardPage() {
 
       setLocalData((prev) => {
         const currentMap = prev.habitCheckins[habitId] ?? {}
-        const currentlyDone = !!currentMap[dateKey]
+        const prevDone = !!currentMap[dateKey]
         const nextMap = { ...currentMap }
-        if (currentlyDone) delete nextMap[dateKey]
+        if (prevDone) delete nextMap[dateKey]
         else nextMap[dateKey] = true
         return {
           ...prev,
@@ -240,7 +259,7 @@ export function BoardPage() {
         }
       })
     },
-    [todayKey, isAuthenticated, mutations.toggleHabitCheckin],
+    [todayKey, data.habits, data.habitCheckins, data.labEntries, isAuthenticated, mutations.toggleHabitCheckin],
   )
 
   const handleSavePlan = useCallback(
@@ -645,8 +664,9 @@ export function BoardPage() {
       )}
 
       {tourOpen && (
-        <TourModal
+        <SpotlightTour
           open={tourOpen}
+          currentWeekNumber={currentIso.weekNumber}
           onClose={() => {
             setTourOpen(false)
             if (!data.tourSeen) handleUpdatePref({ tourSeen: true })
