@@ -9,24 +9,23 @@ import {
   X,
 } from 'lucide-react'
 import {
+  DAY_INITIAL,
+  DAY_SHORT,
+  formatMinutes,
+  formatShortRange,
   getCategoryMeta,
   getHabitColorMeta,
+  getHabitWeekCount,
+  isHabitDoneOnDate,
+  parseDateKey,
   type Habit,
+  type ISOWeekInfo,
   type LabEntry,
   type Plan,
   type PlanStatus,
   type WeekMeta,
   type YearBoardData,
-} from '../types/yearBoard'
-import {
-  DAY_INITIAL,
-  DAY_SHORT,
-  formatMinutes,
-  formatShortRange,
-  parseDateKey,
-  type ISOWeekInfo,
-} from '../utils/dates'
-import { getHabitWeekCount, isHabitDoneOnDate } from '../utils/stats'
+} from '@year-board/shared'
 
 interface WeekDrawerProps {
   week: ISOWeekInfo | null

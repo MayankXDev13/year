@@ -1,4 +1,4 @@
-import type { Habit, LabEntry, YearBoardData } from '../types/yearBoard'
+import type { Habit, LabEntry, YearBoardData } from './types'
 import { addDays, getISOWeekInfoForDate, getISOWeeksForYear, type ISOWeekInfo } from './dates'
 
 export function getLabMinutesForDate(labEntries: LabEntry[], dateKey: string): number {

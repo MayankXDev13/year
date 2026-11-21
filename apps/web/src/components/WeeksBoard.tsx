@@ -2,14 +2,16 @@ import { useMemo } from 'react'
 import {
   getCategoryMeta,
   getHabitColorMeta,
+  getHabitWeekCount,
+  isHabitDoneOnDate,
+  MONTH_SHORT,
   type BoardDensity,
   type Habit,
+  type ISOWeekInfo,
   type LabEntry,
   type Plan,
   type YearBoardData,
-} from '../types/yearBoard'
-import { MONTH_SHORT, type ISOWeekInfo } from '../utils/dates'
-import { getHabitWeekCount, isHabitDoneOnDate } from '../utils/stats'
+} from '@year-board/shared'
 
 interface WeeksBoardProps {
   year: number

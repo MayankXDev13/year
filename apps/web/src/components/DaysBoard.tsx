@@ -1,21 +1,19 @@
 import { useMemo } from 'react'
 import {
+  formatDateKey,
   getCategoryMeta,
+  getDaysInMonth,
   getHabitColorMeta,
+  getISOWeekInfoForDate,
+  isHabitDoneOnDate,
+  isWeekendKey,
+  MONTH_SHORT,
   type BoardDensity,
   type Habit,
   type LabEntry,
   type Plan,
   type YearBoardData,
-} from '../types/yearBoard'
-import {
-  formatDateKey,
-  getDaysInMonth,
-  getISOWeekInfoForDate,
-  isWeekendKey,
-  MONTH_SHORT,
-} from '../utils/dates'
-import { isHabitDoneOnDate } from '../utils/stats'
+} from '@year-board/shared'
 
 interface DaysBoardProps {
   year: number

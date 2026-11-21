@@ -1,5 +1,15 @@
-import type { Habit, LabEntry, Plan, QuarterGoal, YearBoardData } from '../types/yearBoard'
-import { addDays, formatDateKey, getISOWeekInfoForDate, getTodayKey, parseDateKey } from './dates'
+import {
+  addDays,
+  formatDateKey,
+  getISOWeekInfoForDate,
+  getTodayKey,
+  parseDateKey,
+  type Habit,
+  type LabEntry,
+  type Plan,
+  type QuarterGoal,
+  type YearBoardData,
+} from '@year-board/shared'
 
 function yDate(year: number, month: number, day: number): string {
   return formatDateKey(new Date(year, month - 1, day))

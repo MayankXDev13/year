@@ -5,26 +5,24 @@ import { Sidebar } from './components/Sidebar'
 import { Toolbar } from './components/Toolbar'
 import { WeekDrawer } from './components/WeekDrawer'
 import { WeeksBoard } from './components/WeeksBoard'
-import type {
-  BoardDensity,
-  BoardView,
-  CategoryId,
-  Habit,
-  Plan,
-  PlanStatus,
-  ShareScope,
-  WeekMeta,
-  YearBoardData,
-} from './types/yearBoard'
 import {
   getISOWeekInfoForDate,
   getISOWeeksForYear,
+  getPerfectWeeksStats,
   getTodayKey,
   getYearProgress,
   parseDateKey,
-} from './utils/dates'
+  type BoardDensity,
+  type BoardView,
+  type CategoryId,
+  type Habit,
+  type Plan,
+  type PlanStatus,
+  type ShareScope,
+  type WeekMeta,
+  type YearBoardData,
+} from '@year-board/shared'
 import { createEmptyYearBoardData, createSampleYearBoardData } from './utils/sampleData'
-import { getPerfectWeeksStats } from './utils/stats'
 
 const STORAGE_KEY = 'year-board-data-v1'
 

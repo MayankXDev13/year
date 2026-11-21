@@ -14,20 +14,20 @@ import {
 } from 'lucide-react'
 import {
   CATEGORIES,
+  formatPrettyDay,
   getHabitColorMeta,
-  type CategoryId,
-  type Habit,
-  type LabEntry,
-  type QuarterGoal,
-  type YearBoardData,
-} from '../types/yearBoard'
-import { formatPrettyDay, parseDateKey, type ISOWeekInfo } from '../utils/dates'
-import {
   getHabitStreak,
   getHabitWeekCount,
   getLabMinutesForDate,
   isHabitDoneOnDate,
-} from '../utils/stats'
+  parseDateKey,
+  type CategoryId,
+  type Habit,
+  type ISOWeekInfo,
+  type LabEntry,
+  type QuarterGoal,
+  type YearBoardData,
+} from '@year-board/shared'
 
 interface SidebarProps {
   year: number

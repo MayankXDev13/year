@@ -2,23 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, Copy, Download, Trash2, X } from 'lucide-react'
 import {
   CATEGORIES,
+  formatShortRange,
+  getDaysInMonth,
   HABIT_COLORS,
+  MONTH_NAMES,
+  MONTH_SHORT,
   type CategoryId,
   type Habit,
   type HabitColor,
+  type ISOWeekInfo,
   type Plan,
   type PlanStatus,
   type QuarterGoal,
   type ShareScope,
   type YearBoardData,
-} from '../types/yearBoard'
-import {
-  formatShortRange,
-  getDaysInMonth,
-  MONTH_NAMES,
-  MONTH_SHORT,
-  type ISOWeekInfo,
-} from '../utils/dates'
+} from '@year-board/shared'
 
 /* ============================================================================
  * 1. Plan Modal (Create / Edit)

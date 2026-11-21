@@ -11,8 +11,14 @@ import {
   Sun,
   Trash2,
 } from 'lucide-react'
-import type { BoardDensity, BoardView, ShareScope } from '../types/yearBoard'
-import { MONTH_ABBR, MONTH_NAMES, type ISOWeekInfo } from '../utils/dates'
+import {
+  MONTH_ABBR,
+  MONTH_NAMES,
+  type BoardDensity,
+  type BoardView,
+  type ISOWeekInfo,
+  type ShareScope,
+} from '@year-board/shared'
 
 interface ToolbarProps {
   year: number
