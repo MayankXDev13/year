@@ -67,6 +67,7 @@ export type AuditAction =
   | 'week.update'
   | 'board.import'
   | 'board.reset'
+  | 'preferences.update'
 
 export interface AuditLogEntry {
   id: string

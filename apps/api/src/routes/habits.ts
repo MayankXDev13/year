@@ -9,7 +9,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
 import * as schema from '../db/schema'
 import type { AppVariables, Env } from '../env'
-import { logAudit } from '../lib/audit'
+import { buildAuditInsert } from '../lib/audit'
 import { requireAuth } from '../middleware/auth'
 
 export const habitRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
@@ -22,26 +22,27 @@ habitRoutes.post('/habits', async (c) => {
   const db = drizzle(c.env.DB, { schema })
 
   const id = crypto.randomUUID()
-  await db.insert(schema.habits).values({
-    id,
-    userId: user.id,
-    name: body.name,
-    color: body.color,
-    weeklyTarget: body.weeklyTarget,
-    archived: body.archived ?? false,
-    isLabs: false,
-    dailyMinutesTarget: null,
-    createdAt: new Date(),
-  })
-
-  await logAudit(db, c, {
-    userId: user.id,
-    action: 'habit.create',
-    entityType: 'habit',
-    entityId: id,
-    summary: `Created habit "${body.name}" (${body.weeklyTarget}/week)`,
-    metadata: { color: body.color, weeklyTarget: body.weeklyTarget },
-  })
+  await db.batch([
+    db.insert(schema.habits).values({
+      id,
+      userId: user.id,
+      name: body.name,
+      color: body.color,
+      weeklyTarget: body.weeklyTarget,
+      archived: body.archived ?? false,
+      isLabs: false,
+      dailyMinutesTarget: null,
+      createdAt: new Date(),
+    }),
+    buildAuditInsert(db, c, {
+      userId: user.id,
+      action: 'habit.create',
+      entityType: 'habit',
+      entityId: id,
+      summary: `Created habit "${body.name}" (${body.weeklyTarget}/week)`,
+      metadata: { color: body.color, weeklyTarget: body.weeklyTarget },
+    }),
+  ])
 
   return c.json({ id, ...body }, 201)
 })
@@ -61,16 +62,6 @@ habitRoutes.patch('/habits/:id', async (c) => {
     return c.json({ error: { code: 'NOT_FOUND', message: 'Habit not found' } }, 404)
   }
 
-  await db
-    .update(schema.habits)
-    .set({
-      ...(body.name !== undefined ? { name: body.name } : {}),
-      ...(body.color !== undefined ? { color: body.color } : {}),
-      ...(body.weeklyTarget !== undefined ? { weeklyTarget: body.weeklyTarget } : {}),
-      ...(body.archived !== undefined ? { archived: body.archived } : {}),
-    })
-    .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id)))
-
   const action =
     body.archived !== undefined
       ? body.archived
@@ -78,19 +69,30 @@ habitRoutes.patch('/habits/:id', async (c) => {
         : 'habit.unarchive'
       : 'habit.update'
 
-  await logAudit(db, c, {
-    userId: user.id,
-    action,
-    entityType: 'habit',
-    entityId: id,
-    summary:
-      action === 'habit.archive'
-        ? `Archived habit "${existing.name}"`
-        : action === 'habit.unarchive'
-          ? `Unarchived habit "${existing.name}"`
-          : `Updated habit "${body.name ?? existing.name}"`,
-    metadata: body,
-  })
+  await db.batch([
+    db
+      .update(schema.habits)
+      .set({
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.color !== undefined ? { color: body.color } : {}),
+        ...(body.weeklyTarget !== undefined ? { weeklyTarget: body.weeklyTarget } : {}),
+        ...(body.archived !== undefined ? { archived: body.archived } : {}),
+      })
+      .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id))),
+    buildAuditInsert(db, c, {
+      userId: user.id,
+      action,
+      entityType: 'habit',
+      entityId: id,
+      summary:
+        action === 'habit.archive'
+          ? `Archived habit "${existing.name}"`
+          : action === 'habit.unarchive'
+            ? `Unarchived habit "${existing.name}"`
+            : `Updated habit "${body.name ?? existing.name}"`,
+      metadata: body,
+    }),
+  ])
 
   return c.json({ ok: true, id })
 })
@@ -105,18 +107,19 @@ habitRoutes.delete('/habits/:id', async (c) => {
     .from(schema.habits)
     .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id)))
 
-  await db
-    .delete(schema.habits)
-    .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id)))
-
   if (existing) {
-    await logAudit(db, c, {
-      userId: user.id,
-      action: 'habit.delete',
-      entityType: 'habit',
-      entityId: id,
-      summary: `Deleted habit "${existing.name}"`,
-    })
+    await db.batch([
+      db
+        .delete(schema.habits)
+        .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id))),
+      buildAuditInsert(db, c, {
+        userId: user.id,
+        action: 'habit.delete',
+        entityType: 'habit',
+        entityId: id,
+        summary: `Deleted habit "${existing.name}"`,
+      }),
+    ])
   }
 
   return c.json({ ok: true })
@@ -127,7 +130,6 @@ habitRoutes.post('/habits/:id/toggle', async (c) => {
   const habitId = c.req.param('id')
   const { dateKey, todayKey } = toggleHabitCheckinSchema.parse(await c.req.json())
 
-  // Enforce past & today only — block future habit check-ins
   const maxAllowedDate = todayKey ?? new Date(Date.now() + 14 * 3_600_000).toISOString().slice(0, 10)
   if (dateKey > maxAllowedDate) {
     return c.json(
@@ -164,59 +166,36 @@ habitRoutes.post('/habits/:id/toggle', async (c) => {
     )
 
   if (existing) {
-    await db.delete(schema.habitCheckins).where(eq(schema.habitCheckins.id, existing.id))
-    if (habit.isLabs) {
-      await db
-        .delete(schema.labEntries)
-        .where(
-          and(eq(schema.labEntries.userId, user.id), eq(schema.labEntries.dateKey, dateKey)),
-        )
-    }
-    await logAudit(db, c, {
-      userId: user.id,
-      action: 'habit.uncheck',
-      entityType: 'habit',
-      entityId: habitId,
-      summary: `Unchecked "${habit.name}" for ${dateKey}`,
-      metadata: { dateKey },
-    })
+    await db.batch([
+      db.delete(schema.habitCheckins).where(eq(schema.habitCheckins.id, existing.id)),
+      buildAuditInsert(db, c, {
+        userId: user.id,
+        action: 'habit.uncheck',
+        entityType: 'habit',
+        entityId: habitId,
+        summary: `Unchecked "${habit.name}" for ${dateKey}`,
+        metadata: { dateKey },
+      }),
+    ])
     return c.json({ done: false })
   }
 
-  await db.insert(schema.habitCheckins).values({
-    id: crypto.randomUUID(),
-    habitId,
-    userId: user.id,
-    dateKey,
-  })
-
-  await logAudit(db, c, {
-    userId: user.id,
-    action: 'habit.checkin',
-    entityType: 'habit',
-    entityId: habitId,
-    summary: `Checked in "${habit.name}" for ${dateKey}`,
-    metadata: { dateKey },
-  })
-
-  if (habit.isLabs) {
-    const target = habit.dailyMinutesTarget ?? 20
-    const existingLabs = await db
-      .select()
-      .from(schema.labEntries)
-      .where(and(eq(schema.labEntries.userId, user.id), eq(schema.labEntries.dateKey, dateKey)))
-    const currentTotal = existingLabs.reduce((s, e) => s + e.minutes, 0)
-    if (currentTotal < target) {
-      await db.insert(schema.labEntries).values({
-        id: crypto.randomUUID(),
-        userId: user.id,
-        dateKey,
-        topic: 'Labs',
-        minutes: target - currentTotal,
-        createdAt: new Date(),
-      })
-    }
-  }
+  await db.batch([
+    db.insert(schema.habitCheckins).values({
+      id: crypto.randomUUID(),
+      habitId,
+      userId: user.id,
+      dateKey,
+    }),
+    buildAuditInsert(db, c, {
+      userId: user.id,
+      action: 'habit.checkin',
+      entityType: 'habit',
+      entityId: habitId,
+      summary: `Checked in "${habit.name}" for ${dateKey}`,
+      metadata: { dateKey },
+    }),
+  ])
 
   return c.json({ done: true })
 })

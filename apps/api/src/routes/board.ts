@@ -15,7 +15,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
 import * as schema from '../db/schema'
 import type { AppVariables, Env } from '../env'
-import { logAudit } from '../lib/audit'
+import { buildAuditInsert } from '../lib/audit'
 import { requireAuth } from '../middleware/auth'
 
 export const boardRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
@@ -142,21 +142,30 @@ boardRoutes.patch('/preferences', async (c) => {
   }
   if (body.tourSeen !== undefined) patch.tourSeen = body.tourSeen
 
-  await db
-    .insert(schema.userPreferences)
-    .values({
+  await db.batch([
+    db
+      .insert(schema.userPreferences)
+      .values({
+        userId: user.id,
+        ownerName: body.ownerName ?? user.name ?? 'My Year',
+        density: body.density ?? 'comfortable',
+        view: body.view ?? 'weeks',
+        theme: body.theme ?? 'dark',
+        hiddenCategories: JSON.stringify(body.hiddenCategories ?? []),
+        tourSeen: body.tourSeen ?? false,
+      })
+      .onConflictDoUpdate({
+        target: schema.userPreferences.userId,
+        set: patch,
+      }),
+    buildAuditInsert(db, c, {
       userId: user.id,
-      ownerName: body.ownerName ?? user.name ?? 'My Year',
-      density: body.density ?? 'comfortable',
-      view: body.view ?? 'weeks',
-      theme: body.theme ?? 'dark',
-      hiddenCategories: JSON.stringify(body.hiddenCategories ?? []),
-      tourSeen: body.tourSeen ?? false,
-    })
-    .onConflictDoUpdate({
-      target: schema.userPreferences.userId,
-      set: patch,
-    })
+      action: 'preferences.update',
+      entityType: 'board',
+      summary: `Updated board preferences (${Object.keys(body).join(', ')})`,
+      metadata: body,
+    }),
+  ])
 
   return c.json({ ok: true })
 })
@@ -303,7 +312,7 @@ boardRoutes.post('/board/import', async (c) => {
     }
   }
 
-  await logAudit(db, c, {
+  await buildAuditInsert(db, c, {
     userId: user.id,
     action: 'board.import',
     entityType: 'board',
@@ -322,20 +331,19 @@ boardRoutes.post('/board/reset', async (c) => {
   const user = c.get('user')
   const db = drizzle(c.env.DB, { schema })
 
-  await Promise.all([
+  await db.batch([
     db.delete(schema.plans).where(eq(schema.plans.userId, user.id)),
     db.delete(schema.habitCheckins).where(eq(schema.habitCheckins.userId, user.id)),
     db.delete(schema.labEntries).where(eq(schema.labEntries.userId, user.id)),
     db.delete(schema.quarterGoals).where(eq(schema.quarterGoals.userId, user.id)),
     db.delete(schema.weekMeta).where(eq(schema.weekMeta.userId, user.id)),
+    buildAuditInsert(db, c, {
+      userId: user.id,
+      action: 'board.reset',
+      entityType: 'board',
+      summary: 'Cleared board data',
+    }),
   ])
-
-  await logAudit(db, c, {
-    userId: user.id,
-    action: 'board.reset',
-    entityType: 'board',
-    summary: 'Cleared board data',
-  })
 
   return c.json({ ok: true })
 })

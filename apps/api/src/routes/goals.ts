@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
 import * as schema from '../db/schema'
 import type { AppVariables, Env } from '../env'
-import { logAudit } from '../lib/audit'
+import { buildAuditInsert } from '../lib/audit'
 import { requireAuth } from '../middleware/auth'
 
 export const goalRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
@@ -35,24 +35,25 @@ goalRoutes.post('/', async (c) => {
   }
 
   const id = crypto.randomUUID()
-  await db.insert(schema.quarterGoals).values({
-    id,
-    userId: user.id,
-    year: body.year,
-    quarter: body.quarter,
-    title: body.title,
-    done: false,
-    createdAt: new Date(),
-  })
-
-  await logAudit(db, c, {
-    userId: user.id,
-    action: 'goal.create',
-    entityType: 'goal',
-    entityId: id,
-    summary: `Added Q${body.quarter} ${body.year} goal "${body.title}"`,
-    metadata: { year: body.year, quarter: body.quarter },
-  })
+  await db.batch([
+    db.insert(schema.quarterGoals).values({
+      id,
+      userId: user.id,
+      year: body.year,
+      quarter: body.quarter,
+      title: body.title,
+      done: false,
+      createdAt: new Date(),
+    }),
+    buildAuditInsert(db, c, {
+      userId: user.id,
+      action: 'goal.create',
+      entityType: 'goal',
+      entityId: id,
+      summary: `Added Q${body.quarter} ${body.year} goal "${body.title}"`,
+      metadata: { year: body.year, quarter: body.quarter },
+    }),
+  ])
 
   return c.json({ id, ...body, done: false }, 201)
 })
@@ -72,25 +73,26 @@ goalRoutes.patch('/:id', async (c) => {
     return c.json({ error: { code: 'NOT_FOUND', message: 'Goal not found' } }, 404)
   }
 
-  await db
-    .update(schema.quarterGoals)
-    .set({
-      ...(body.title !== undefined ? { title: body.title } : {}),
-      ...(body.done !== undefined ? { done: body.done } : {}),
-    })
-    .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id)))
-
-  await logAudit(db, c, {
-    userId: user.id,
-    action: 'goal.update',
-    entityType: 'goal',
-    entityId: id,
-    summary:
-      body.done !== undefined
-        ? `${body.done ? 'Completed' : 'Reopened'} goal "${existing.title}"`
-        : `Updated goal "${body.title ?? existing.title}"`,
-    metadata: body,
-  })
+  await db.batch([
+    db
+      .update(schema.quarterGoals)
+      .set({
+        ...(body.title !== undefined ? { title: body.title } : {}),
+        ...(body.done !== undefined ? { done: body.done } : {}),
+      })
+      .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id))),
+    buildAuditInsert(db, c, {
+      userId: user.id,
+      action: 'goal.update',
+      entityType: 'goal',
+      entityId: id,
+      summary:
+        body.done !== undefined
+          ? `${body.done ? 'Completed' : 'Reopened'} goal "${existing.title}"`
+          : `Updated goal "${body.title ?? existing.title}"`,
+      metadata: body,
+    }),
+  ])
 
   return c.json({ ok: true, id })
 })
@@ -105,18 +107,19 @@ goalRoutes.delete('/:id', async (c) => {
     .from(schema.quarterGoals)
     .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id)))
 
-  await db
-    .delete(schema.quarterGoals)
-    .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id)))
-
   if (existing) {
-    await logAudit(db, c, {
-      userId: user.id,
-      action: 'goal.delete',
-      entityType: 'goal',
-      entityId: id,
-      summary: `Deleted Q${existing.quarter} ${existing.year} goal "${existing.title}"`,
-    })
+    await db.batch([
+      db
+        .delete(schema.quarterGoals)
+        .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id))),
+      buildAuditInsert(db, c, {
+        userId: user.id,
+        action: 'goal.delete',
+        entityType: 'goal',
+        entityId: id,
+        summary: `Deleted Q${existing.quarter} ${existing.year} goal "${existing.title}"`,
+      }),
+    ])
   }
 
   return c.json({ ok: true })

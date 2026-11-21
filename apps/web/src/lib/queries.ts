@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
-  AuditLogEntry,
   Habit,
   ImportBoardInput,
   Plan,
@@ -13,16 +12,6 @@ import { apiFetch } from './api'
 
 export const boardKeys = {
   all: ['board'] as const,
-  auditLogs: ['audit-logs'] as const,
-}
-
-export function useAuditLogsQuery(enabled: boolean) {
-  return useQuery({
-    queryKey: boardKeys.auditLogs,
-    queryFn: () => apiFetch<{ logs: AuditLogEntry[] }>('/api/audit-logs?limit=100'),
-    enabled,
-    staleTime: 10_000,
-  })
 }
 
 export function useBoardQuery(enabled: boolean) {
@@ -43,10 +32,7 @@ export function useBoardQuery(enabled: boolean) {
 export function useBoardMutations(onError: (msg: string) => void) {
   const queryClient = useQueryClient()
 
-  const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: boardKeys.all })
-    void queryClient.invalidateQueries({ queryKey: boardKeys.auditLogs })
-  }
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: boardKeys.all })
 
   const handleErr = (err: unknown, fallback: string) => {
     const msg = err instanceof Error ? err.message : fallback

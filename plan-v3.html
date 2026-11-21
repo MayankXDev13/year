@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Year Board v3 — Theme Toggle Placement Recommendation</title>
+  <style>
+    :root {
+      --bg-card: var(--card, #18181b);
+      --bg-secondary: var(--secondary, #27272a);
+      --fg: var(--foreground, #f4f4f5);
+      --fg-muted: var(--muted-foreground, #a1a1aa);
+      --bd: var(--border, rgba(255, 255, 255, 0.12));
+      --c-orange: #ea580c;
+      --c-green: var(--success, #43b583);
+      --c-blue: var(--info, #6b95f0);
+      --rad: var(--radius, 10px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+      color: var(--fg);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--bd);
+      border-radius: var(--rad);
+      padding: 16px;
+    }
+
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .rec-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(67, 181, 131, 0.18);
+      color: #43b583;
+      border: 1px solid rgba(67, 181, 131, 0.4);
+    }
+
+    .alt-badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--bg-secondary);
+      color: var(--fg-muted);
+      border: 1px solid var(--bd);
+    }
+
+    .why {
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    .why strong { color: var(--fg); }
+
+    /* Mockup shell */
+    .mock-shell {
+      border-radius: 12px;
+      border: 1px solid var(--bd);
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .mock-shell.m-dark {
+      background: #0c0a09;
+      color: #f5f5f4;
+      --m-surface: #161412;
+      --m-sheet: #1c1917;
+      --m-bd: rgba(255,247,237,0.14);
+      --m-muted: #a1a1aa;
+      --m-fg: #f5f5f4;
+      --m-bg: #0c0a09;
+    }
+
+    .mock-shell.m-light {
+      background: #fafaf9;
+      color: #18181b;
+      --m-surface: #ffffff;
+      --m-sheet: #ffffff;
+      --m-bd: rgba(24,24,27,0.14);
+      --m-muted: #71717a;
+      --m-fg: #18181b;
+      --m-bg: #fafaf9;
+    }
+
+    .mock-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--m-bd);
+      border-radius: 12px 12px 0 0;
+    }
+
+    .mock-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .mock-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-btn {
+      height: 32px;
+      width: 32px;
+      border-radius: 999px;
+      border: 1.5px solid #ea580c;
+      background: rgba(234, 88, 12, 0.14);
+      color: var(--m-fg);
+      display: inline-grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: transform 0.15s;
+    }
+
+    .theme-btn:active { transform: scale(0.92); }
+
+    .mock-profile-wrap { position: relative; }
+
+    .mock-profile-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 10px 4px 5px;
+      border-radius: 999px;
+      border: 1px solid var(--m-bd);
+      background: var(--m-surface);
+      color: var(--m-fg);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .mock-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ea580c;
+      color: #fff;
+      display: inline-grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .mock-dropdown {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      width: 200px;
+      background: var(--m-sheet);
+      border: 1px solid var(--m-bd);
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+      z-index: 20;
+    }
+
+    .mock-dd-user {
+      padding: 6px 8px 8px;
+      border-bottom: 1px solid var(--m-bd);
+      margin-bottom: 6px;
+    }
+
+    .mock-dd-name { font-size: 12.5px; font-weight: 700; color: var(--m-fg); }
+    .mock-dd-email { font-size: 11px; color: var(--m-muted); }
+
+    .mock-dd-item {
+      width: 100%;
+      padding: 7px 8px;
+      border: none;
+      background: transparent;
+      color: #f87171;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .mock-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .mock-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mock-btn {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid var(--m-bd);
+      background: var(--m-surface);
+      color: var(--m-fg);
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .mock-btn.icon {
+      width: 32px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .mock-btn.primary {
+      background: var(--m-fg);
+      color: var(--m-bg);
+      border-color: var(--m-fg);
+    }
+
+    .mock-seg {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 8px;
+      border: 1px solid var(--m-bd);
+      background: var(--m-surface);
+    }
+
+    .mock-seg span {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--m-muted);
+    }
+
+    .mock-seg span.active {
+      background: rgba(234, 88, 12, 0.22);
+      color: var(--m-fg);
+    }
+
+    .pros {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+    }
+
+    .pro-chip {
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bd);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Option A: Recommended (Navbar) -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">Option A · Top Navbar (Beside Profile Pill)</h2>
+        <span class="rec-badge">★ Recommended</span>
+      </div>
+      <p class="why">
+        <strong>Best UX:</strong> Always 1 click away on <strong>every page</strong> (Board, Login, 404, Auth Error). Keeps global app controls in Row 1 and Year Board controls in Row 2. Click the highlighted <strong>☀ / ☾</strong> button or <strong>Mayank ▾</strong> below to test!
+      </p>
+
+      <div id="shellA" class="mock-shell m-dark">
+        <div class="mock-nav">
+          <div class="mock-brand">
+            <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#181311" stroke="#EA580C" stroke-opacity="0.45" stroke-width="2"/>
+              <rect x="13" y="14" width="38" height="6" rx="3" fill="#EA580C"/>
+              <rect x="13" y="25" width="21" height="7" rx="3" fill="#6B95F0"/>
+              <rect x="13" y="35" width="13" height="7" rx="3" fill="#A183EE"/>
+              <rect x="29" y="35" width="22" height="7" rx="3" fill="#43B583"/>
+              <rect x="13" y="45" width="17" height="7" rx="3" fill="#D4A94F"/>
+              <rect x="33" y="45" width="18" height="7" rx="3" fill="#F5F5F4"/>
+            </svg>
+            <span>Year Board</span>
+          </div>
+
+          <div class="mock-right">
+            <!-- Theme toggle directly in Navbar (NOT in dropdown) -->
+            <button id="toggleA" type="button" class="theme-btn" title="Toggle light/dark mode">☀</button>
+
+            <!-- Clean Profile Pill -->
+            <div class="mock-profile-wrap">
+              <button id="profA" type="button" class="mock-profile-btn">
+                <span class="mock-avatar">M</span>
+                <span>Mayank</span>
+                <span style="font-size:10px;opacity:0.6;">▾</span>
+              </button>
+              <div id="menuA" class="mock-dropdown" style="display: none;">
+                <div class="mock-dd-user">
+                  <div class="mock-dd-name">Mayank Nair</div>
+                  <div class="mock-dd-email">mayank@example.com</div>
+                </div>
+                <button type="button" class="mock-dd-item" onclick="document.getElementById('menuA').style.display='none'">↪ Sign out</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mock-toolbar">
+          <div class="mock-group">
+            <span class="mock-btn">‹ 2026 ›</span>
+            <span class="mock-btn">This week</span>
+          </div>
+          <div class="mock-group">
+            <span style="font-size:11.5px;color:var(--m-muted);margin-right:4px;">? How it works</span>
+            <div class="mock-seg"><span class="active">Weeks</span><span>Days</span></div>
+            <span class="mock-btn icon">⚙</span>
+            <span class="mock-btn primary">↑ Share ▾</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pros">
+        <span class="pro-chip">✓ Visible on Login &amp; 404 pages too</span>
+        <span class="pro-chip">✓ 1-click toggle, zero dropdown</span>
+        <span class="pro-chip">✓ Standard top-right pattern</span>
+      </div>
+    </section>
+
+    <!-- Option B: Second Row (Board Toolbar) -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">Option B · Second Row Toolbar (Between Weeks|Days &amp; Settings)</h2>
+        <span class="alt-badge">Alternative</span>
+      </div>
+      <p class="why">
+        Keeps Row 1 ultra-minimal (<strong>Logo + Profile Pill only</strong>) and places the visible <strong>☀ / ☾</strong> button directly on the second row beside Density Settings. Click to test!
+      </p>
+
+      <div id="shellB" class="mock-shell m-dark">
+        <div class="mock-nav">
+          <div class="mock-brand">
+            <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#181311" stroke="#EA580C" stroke-opacity="0.45" stroke-width="2"/>
+              <rect x="13" y="14" width="38" height="6" rx="3" fill="#EA580C"/>
+              <rect x="13" y="25" width="21" height="7" rx="3" fill="#6B95F0"/>
+              <rect x="13" y="35" width="13" height="7" rx="3" fill="#A183EE"/>
+              <rect x="29" y="35" width="22" height="7" rx="3" fill="#43B583"/>
+              <rect x="13" y="45" width="17" height="7" rx="3" fill="#D4A94F"/>
+              <rect x="33" y="45" width="18" height="7" rx="3" fill="#F5F5F4"/>
+            </svg>
+            <span>Year Board</span>
+          </div>
+
+          <div class="mock-right">
+            <div class="mock-profile-wrap">
+              <button id="profB" type="button" class="mock-profile-btn">
+                <span class="mock-avatar">M</span>
+                <span>Mayank</span>
+                <span style="font-size:10px;opacity:0.6;">▾</span>
+              </button>
+              <div id="menuB" class="mock-dropdown" style="display: none;">
+                <div class="mock-dd-user">
+                  <div class="mock-dd-name">Mayank Nair</div>
+                  <div class="mock-dd-email">mayank@example.com</div>
+                </div>
+                <button type="button" class="mock-dd-item" onclick="document.getElementById('menuB').style.display='none'">↪ Sign out</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mock-toolbar">
+          <div class="mock-group">
+            <span class="mock-btn">‹ 2026 ›</span>
+            <span class="mock-btn">This week</span>
+          </div>
+          <div class="mock-group">
+            <span style="font-size:11.5px;color:var(--m-muted);margin-right:4px;">? How it works</span>
+            <div class="mock-seg"><span class="active">Weeks</span><span>Days</span></div>
+            <!-- Theme toggle directly in Toolbar (NOT in dropdown) -->
+            <button id="toggleB" type="button" class="theme-btn" title="Toggle light/dark mode">☀</button>
+            <span class="mock-btn icon">⚙</span>
+            <span class="mock-btn primary">↑ Share ▾</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pros">
+        <span class="pro-chip">✓ Ultra-clean Row 1</span>
+        <span class="pro-chip">✓ Grouped with visual board settings</span>
+        <span class="pro-chip">△ Not shown on /login unless duplicated</span>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function wire(shellId, toggleId, profId, menuId) {
+      const shell = document.getElementById(shellId)
+      const toggle = document.getElementById(toggleId)
+      const prof = document.getElementById(profId)
+      const menu = document.getElementById(menuId)
+      let dark = true
+      toggle.addEventListener('click', () => {
+        dark = !dark
+        shell.className = dark ? 'mock-shell m-dark' : 'mock-shell m-light'
+        toggle.textContent = dark ? '☀' : '☾'
+      })
+      prof.addEventListener('click', () => {
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block'
+      })
+    }
+    wire('shellA', 'toggleA', 'profA', 'menuA')
+    wire('shellB', 'toggleB', 'profB', 'menuB')
+  </script>
+</body>
+</html>
