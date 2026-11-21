@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, ArrowUpRight, Loader2, X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { AlertCircle, Loader2, X } from 'lucide-react'
 import {
   getHabitWeekCount,
   getISOWeekInfoForDate,
@@ -26,6 +25,7 @@ import { SpotlightTour } from '../components/SpotlightTour'
 import { Toolbar } from '../components/Toolbar'
 import { WeekDrawer } from '../components/WeekDrawer'
 import { WeeksBoard } from '../components/WeeksBoard'
+import { ApiError } from '../lib/api'
 import { useSession } from '../lib/auth-client'
 import { useBoardMutations, useBoardQuery } from '../lib/queries'
 import { fireConfetti } from '../utils/confetti'
@@ -61,7 +61,7 @@ export function BoardPage() {
   const todayDate = useMemo(() => parseDateKey(todayKey), [todayKey])
   const currentIso = useMemo(() => getISOWeekInfoForDate(todayKey), [todayKey])
 
-  const { data: sessionData, isPending: sessionPending } = useSession()
+  const { data: sessionData } = useSession()
   const authUser = sessionData?.user ?? null
   const isAuthenticated = Boolean(authUser)
 
@@ -69,7 +69,10 @@ export function BoardPage() {
   const [toastError, setToastError] = useState<string | null>(null)
 
   const boardQuery = useBoardQuery(isAuthenticated)
-  const mutations = useBoardMutations((msg) => setToastError(msg))
+  const mutations = useBoardMutations((msg) => {
+    if (msg.toLowerCase().includes('please sign in')) return
+    setToastError(msg)
+  })
 
   const data: YearBoardData = isAuthenticated && boardQuery.data ? boardQuery.data : localData
 
@@ -455,33 +458,17 @@ export function BoardPage() {
     [isAuthenticated, mutations.updatePreferences],
   )
 
-  const queryErrorMessage = boardQuery.isError
-    ? boardQuery.error instanceof Error
-      ? boardQuery.error.message
-      : 'Could not load your Year Board from the server.'
-    : null
+  const queryErrorMessage =
+    isAuthenticated &&
+    boardQuery.isError &&
+    !(boardQuery.error instanceof ApiError && boardQuery.error.status === 401)
+      ? boardQuery.error instanceof Error
+        ? boardQuery.error.message
+        : 'Could not load your Year Board from the server.'
+      : null
 
   return (
     <div className="yb-backdrop min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      {/* Guest Sample Year banner */}
-      {!sessionPending && !isAuthenticated && (
-        <div className="border-b border-[var(--card-edge)] bg-[var(--surface)]/80 px-4 py-2">
-          <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="text-[var(--muted-foreground)]">
-              <strong className="text-[var(--foreground)]">Sample Year.</strong> Sign in with
-              GitHub or Google to sync your plans, habits, and quarter goals across devices.
-            </span>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1 rounded-md bg-[var(--foreground)] px-2.5 py-1 text-xs font-semibold text-[var(--background)] hover:opacity-90"
-            >
-              Sign in
-              <ArrowUpRight className="size-3.5" />
-            </Link>
-          </div>
-        </div>
-      )}
-
       <Toolbar
         year={year}
         onYearChange={setYear}
