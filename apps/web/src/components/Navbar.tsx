@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CalendarRange, History, LogIn, LogOut, Moon, Sun } from 'lucide-react'
+import { History, LogIn, LogOut, Moon, Sun } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSession, useSignOut } from '../lib/auth-client'
 import { AuditLogDrawer } from './AuditLogDrawer'
@@ -45,9 +45,7 @@ export function Navbar() {
           to="/"
           className="inline-flex items-center gap-2.5 text-[var(--foreground)] transition-opacity hover:opacity-90"
         >
-          <span className="grid size-8 place-items-center rounded-lg bg-[#ea580c]/20 text-[#ea580c] ring-1 ring-[#ea580c]/30">
-            <CalendarRange className="size-4" />
-          </span>
+          <img src="/logo.svg" alt="Year Board logo" className="size-8 rounded-lg" />
           <span className="font-montserrat text-base font-bold tracking-tight">Year Board</span>
         </Link>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, CalendarRange, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { signInWithProvider } from '../lib/auth-client'
 
@@ -22,9 +22,11 @@ export function LoginPage() {
     <div className="yb-backdrop flex min-h-[calc(100vh-57px)] flex-col items-center justify-center bg-[var(--background)] px-4 py-12 text-[var(--foreground)]">
       <div className="w-full max-w-[380px] rounded-2xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-7 shadow-2xl">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 grid size-11 place-items-center rounded-xl bg-[#ea580c]/20 text-[#ea580c] ring-1 ring-[#ea580c]/30">
-            <CalendarRange className="size-5" />
-          </div>
+          <img
+            src="/logo.svg"
+            alt="Year Board logo"
+            className="mx-auto mb-3 size-12 rounded-xl"
+          />
           <h1 className="font-montserrat text-xl font-bold tracking-tight">
             Sign in to Year Board
           </h1>
