@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
 import * as schema from '../db/schema'
 import type { AppVariables, Env } from '../env'
+import { logAudit } from '../lib/audit'
 import { requireAuth } from '../middleware/auth'
 
 export const goalRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
@@ -44,6 +45,15 @@ goalRoutes.post('/', async (c) => {
     createdAt: new Date(),
   })
 
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'goal.create',
+    entityType: 'goal',
+    entityId: id,
+    summary: `Added Q${body.quarter} ${body.year} goal "${body.title}"`,
+    metadata: { year: body.year, quarter: body.quarter },
+  })
+
   return c.json({ id, ...body, done: false }, 201)
 })
 
@@ -70,6 +80,18 @@ goalRoutes.patch('/:id', async (c) => {
     })
     .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id)))
 
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'goal.update',
+    entityType: 'goal',
+    entityId: id,
+    summary:
+      body.done !== undefined
+        ? `${body.done ? 'Completed' : 'Reopened'} goal "${existing.title}"`
+        : `Updated goal "${body.title ?? existing.title}"`,
+    metadata: body,
+  })
+
   return c.json({ ok: true, id })
 })
 
@@ -78,9 +100,24 @@ goalRoutes.delete('/:id', async (c) => {
   const id = c.req.param('id')
   const db = drizzle(c.env.DB, { schema })
 
+  const [existing] = await db
+    .select()
+    .from(schema.quarterGoals)
+    .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id)))
+
   await db
     .delete(schema.quarterGoals)
     .where(and(eq(schema.quarterGoals.id, id), eq(schema.quarterGoals.userId, user.id)))
+
+  if (existing) {
+    await logAudit(db, c, {
+      userId: user.id,
+      action: 'goal.delete',
+      entityType: 'goal',
+      entityId: id,
+      summary: `Deleted Q${existing.quarter} ${existing.year} goal "${existing.title}"`,
+    })
+  }
 
   return c.json({ ok: true })
 })

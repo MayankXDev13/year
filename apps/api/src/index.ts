@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import { ZodError } from 'zod'
 import { createAuth } from './auth'
 import type { AppVariables, Env } from './env'
+import { auditRoutes } from './routes/audit'
 import { boardRoutes } from './routes/board'
 import { goalRoutes } from './routes/goals'
 import { habitRoutes } from './routes/habits'
@@ -67,6 +68,7 @@ app.route('/api/plans', planRoutes)
 app.route('/api', habitRoutes)
 app.route('/api/goals', goalRoutes)
 app.route('/api/weeks', weekRoutes)
+app.route('/api/audit-logs', auditRoutes)
 
 // 404 handler for unknown API routes
 app.notFound((c) => {

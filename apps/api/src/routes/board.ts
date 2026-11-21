@@ -15,6 +15,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
 import * as schema from '../db/schema'
 import type { AppVariables, Env } from '../env'
+import { logAudit } from '../lib/audit'
 import { requireAuth } from '../middleware/auth'
 
 export const boardRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
@@ -302,6 +303,18 @@ boardRoutes.post('/board/import', async (c) => {
     }
   }
 
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'board.import',
+    entityType: 'board',
+    summary: `Imported local board (${body.habits.length} habits, ${body.plans.length} plans, ${body.quarterGoals.length} goals)`,
+    metadata: {
+      habits: body.habits.length,
+      plans: body.plans.length,
+      goals: body.quarterGoals.length,
+    },
+  })
+
   return c.json({ ok: true })
 })
 
@@ -316,6 +329,13 @@ boardRoutes.post('/board/reset', async (c) => {
     db.delete(schema.quarterGoals).where(eq(schema.quarterGoals.userId, user.id)),
     db.delete(schema.weekMeta).where(eq(schema.weekMeta.userId, user.id)),
   ])
+
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'board.reset',
+    entityType: 'board',
+    summary: 'Cleared board data',
+  })
 
   return c.json({ ok: true })
 })

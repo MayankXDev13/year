@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
 import * as schema from '../db/schema'
 import type { AppVariables, Env } from '../env'
+import { logAudit } from '../lib/audit'
 import { requireAuth } from '../middleware/auth'
 
 export const planRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
@@ -26,6 +27,15 @@ planRoutes.post('/', async (c) => {
     status: body.status,
     notes: body.notes ?? null,
     createdAt: new Date(),
+  })
+
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'plan.create',
+    entityType: 'plan',
+    entityId: id,
+    summary: `Created plan "${body.title}" (${body.startDate} to ${body.endDate})`,
+    metadata: { category: body.category, status: body.status },
   })
 
   return c.json({ id, ...body }, 201)
@@ -58,6 +68,15 @@ planRoutes.patch('/:id', async (c) => {
     })
     .where(and(eq(schema.plans.id, id), eq(schema.plans.userId, user.id)))
 
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'plan.update',
+    entityType: 'plan',
+    entityId: id,
+    summary: `Updated plan "${body.title ?? existing.title}"${body.status ? ` → ${body.status}` : ''}`,
+    metadata: body,
+  })
+
   return c.json({ ok: true, id })
 })
 
@@ -66,9 +85,24 @@ planRoutes.delete('/:id', async (c) => {
   const id = c.req.param('id')
   const db = drizzle(c.env.DB, { schema })
 
+  const [existing] = await db
+    .select()
+    .from(schema.plans)
+    .where(and(eq(schema.plans.id, id), eq(schema.plans.userId, user.id)))
+
   await db
     .delete(schema.plans)
     .where(and(eq(schema.plans.id, id), eq(schema.plans.userId, user.id)))
+
+  if (existing) {
+    await logAudit(db, c, {
+      userId: user.id,
+      action: 'plan.delete',
+      entityType: 'plan',
+      entityId: id,
+      summary: `Deleted plan "${existing.title}"`,
+    })
+  }
 
   return c.json({ ok: true })
 })

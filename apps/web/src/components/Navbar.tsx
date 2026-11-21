@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { CalendarRange, LogIn, LogOut, Moon, Sun } from 'lucide-react'
+import { CalendarRange, History, LogIn, LogOut, Moon, Sun } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSession, useSignOut } from '../lib/auth-client'
+import { AuditLogDrawer } from './AuditLogDrawer'
 
 const THEME_STORAGE_KEY = 'year-board-theme'
 
@@ -20,6 +21,7 @@ export function Navbar() {
   const { data: sessionData } = useSession()
   const signOut = useSignOut()
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme)
+  const [auditOpen, setAuditOpen] = useState(false)
 
   const user = sessionData?.user ?? null
   const isLoginPage = location.pathname === '/login'
@@ -51,6 +53,19 @@ export function Navbar() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
+          {user && (
+            <button
+              type="button"
+              aria-label="Activity log"
+              title="Activity log"
+              onClick={() => setAuditOpen(true)}
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--card-edge)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:border-[var(--card-edge-hover)] hover:text-[var(--foreground)]"
+            >
+              <History className="size-3.5" />
+              <span className="hidden sm:inline">Activity</span>
+            </button>
+          )}
+
           <button
             type="button"
             aria-label="Toggle theme"
@@ -100,6 +115,7 @@ export function Navbar() {
           )}
         </div>
       </div>
+      {user && <AuditLogDrawer open={auditOpen} onClose={() => setAuditOpen(false)} />}
     </nav>
   )
 }

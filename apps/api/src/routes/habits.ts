@@ -9,6 +9,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
 import * as schema from '../db/schema'
 import type { AppVariables, Env } from '../env'
+import { logAudit } from '../lib/audit'
 import { requireAuth } from '../middleware/auth'
 
 export const habitRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
@@ -31,6 +32,15 @@ habitRoutes.post('/habits', async (c) => {
     isLabs: false,
     dailyMinutesTarget: null,
     createdAt: new Date(),
+  })
+
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'habit.create',
+    entityType: 'habit',
+    entityId: id,
+    summary: `Created habit "${body.name}" (${body.weeklyTarget}/week)`,
+    metadata: { color: body.color, weeklyTarget: body.weeklyTarget },
   })
 
   return c.json({ id, ...body }, 201)
@@ -61,6 +71,27 @@ habitRoutes.patch('/habits/:id', async (c) => {
     })
     .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id)))
 
+  const action =
+    body.archived !== undefined
+      ? body.archived
+        ? 'habit.archive'
+        : 'habit.unarchive'
+      : 'habit.update'
+
+  await logAudit(db, c, {
+    userId: user.id,
+    action,
+    entityType: 'habit',
+    entityId: id,
+    summary:
+      action === 'habit.archive'
+        ? `Archived habit "${existing.name}"`
+        : action === 'habit.unarchive'
+          ? `Unarchived habit "${existing.name}"`
+          : `Updated habit "${body.name ?? existing.name}"`,
+    metadata: body,
+  })
+
   return c.json({ ok: true, id })
 })
 
@@ -69,9 +100,24 @@ habitRoutes.delete('/habits/:id', async (c) => {
   const id = c.req.param('id')
   const db = drizzle(c.env.DB, { schema })
 
+  const [existing] = await db
+    .select()
+    .from(schema.habits)
+    .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id)))
+
   await db
     .delete(schema.habits)
     .where(and(eq(schema.habits.id, id), eq(schema.habits.userId, user.id)))
+
+  if (existing) {
+    await logAudit(db, c, {
+      userId: user.id,
+      action: 'habit.delete',
+      entityType: 'habit',
+      entityId: id,
+      summary: `Deleted habit "${existing.name}"`,
+    })
+  }
 
   return c.json({ ok: true })
 })
@@ -126,6 +172,14 @@ habitRoutes.post('/habits/:id/toggle', async (c) => {
           and(eq(schema.labEntries.userId, user.id), eq(schema.labEntries.dateKey, dateKey)),
         )
     }
+    await logAudit(db, c, {
+      userId: user.id,
+      action: 'habit.uncheck',
+      entityType: 'habit',
+      entityId: habitId,
+      summary: `Unchecked "${habit.name}" for ${dateKey}`,
+      metadata: { dateKey },
+    })
     return c.json({ done: false })
   }
 
@@ -134,6 +188,15 @@ habitRoutes.post('/habits/:id/toggle', async (c) => {
     habitId,
     userId: user.id,
     dateKey,
+  })
+
+  await logAudit(db, c, {
+    userId: user.id,
+    action: 'habit.checkin',
+    entityType: 'habit',
+    entityId: habitId,
+    summary: `Checked in "${habit.name}" for ${dateKey}`,
+    metadata: { dateKey },
   })
 
   if (habit.isLabs) {

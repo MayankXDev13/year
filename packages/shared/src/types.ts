@@ -50,6 +50,34 @@ export interface LabEntry {
   minutes: number
 }
 
+export type AuditAction =
+  | 'plan.create'
+  | 'plan.update'
+  | 'plan.delete'
+  | 'habit.create'
+  | 'habit.update'
+  | 'habit.archive'
+  | 'habit.unarchive'
+  | 'habit.delete'
+  | 'habit.checkin'
+  | 'habit.uncheck'
+  | 'goal.create'
+  | 'goal.update'
+  | 'goal.delete'
+  | 'week.update'
+  | 'board.import'
+  | 'board.reset'
+
+export interface AuditLogEntry {
+  id: string
+  action: AuditAction
+  entityType: 'plan' | 'habit' | 'goal' | 'week' | 'board'
+  entityId: string | null
+  summary: string
+  metadata: Record<string, unknown> | null
+  createdAt: string
+}
+
 export interface YearBoardData {
   ownerName: string
   plans: Plan[]

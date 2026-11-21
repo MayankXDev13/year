@@ -175,3 +175,22 @@ export const userPreferences = sqliteTable('user_preferences', {
   hiddenCategories: text('hidden_categories').notNull().default('[]'),
   tourSeen: integer('tour_seen', { mode: 'boolean' }).notNull().default(false),
 })
+
+export const auditLogs = sqliteTable(
+  'audit_logs',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    action: text('action').notNull(),
+    entityType: text('entity_type').notNull(),
+    entityId: text('entity_id'),
+    summary: text('summary').notNull(),
+    metadata: text('metadata'),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (table) => [index('audit_logs_user_created_idx').on(table.userId, table.createdAt)],
+)
