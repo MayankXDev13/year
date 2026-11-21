@@ -23,9 +23,14 @@ export function LoginPage() {
       <div className="w-full max-w-[380px] rounded-2xl border border-[var(--card-edge-hover)] bg-[var(--yb-sheet)] p-7 shadow-2xl">
         <div className="mb-6 text-center">
           <img
-            src="/logo.svg"
+            src="/logo-dark.svg"
             alt="Year Board logo"
-            className="mx-auto mb-3 size-12 rounded-xl"
+            className="mx-auto mb-3 hidden size-12 rounded-xl dark:block"
+          />
+          <img
+            src="/logo-light.svg"
+            alt="Year Board logo"
+            className="mx-auto mb-3 block size-12 rounded-xl dark:hidden"
           />
           <h1 className="font-montserrat text-xl font-bold tracking-tight">
             Sign in to Year Board

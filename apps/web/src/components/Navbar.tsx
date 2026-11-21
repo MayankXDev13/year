@@ -45,7 +45,16 @@ export function Navbar() {
           to="/"
           className="inline-flex items-center gap-2.5 text-[var(--foreground)] transition-opacity hover:opacity-90"
         >
-          <img src="/logo.svg" alt="Year Board logo" className="size-8 rounded-lg" />
+          <img
+            src="/logo-dark.svg"
+            alt="Year Board logo"
+            className="hidden size-8 rounded-lg dark:block"
+          />
+          <img
+            src="/logo-light.svg"
+            alt="Year Board logo"
+            className="block size-8 rounded-lg dark:hidden"
+          />
           <span className="font-montserrat text-base font-bold tracking-tight">Year Board</span>
         </Link>
 
